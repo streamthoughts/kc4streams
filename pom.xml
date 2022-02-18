@@ -25,7 +25,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.streamthoughts</groupId>
-    <artifactId>kc4-streams</artifactId>
+    <artifactId>kc4streams</artifactId>
     <version>1.0.0</version>
 
     <properties>
