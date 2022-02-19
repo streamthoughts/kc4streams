@@ -2,6 +2,12 @@
 :toc:
 :toc-placement!:
 
+image:https://github.com/streamthoughts/kc4streams/actions/workflows/build.yml/badge.svg[Java CI Build]
+image:https://img.shields.io/github/issues/streamthoughts/kc4streams[]
+image:https://img.shields.io/github/forks/streamthoughts/kc4streams[]
+image:https://img.shields.io/github/stars/streamthoughts/kc4streams[]
+image:https://img.shields.io/github/license/streamthoughts/kc4streams[]
+
 toc::[]
 
 == Introduction

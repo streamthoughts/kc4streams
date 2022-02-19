@@ -53,7 +53,7 @@
         <url>https://www.streamthoughts.io</url>
     </organization>
 
-    <url>https://github.com/streamthoughts/kc4-streams</url>
+    <url>https://github.com/streamthoughts/kc4streams</url>
 
     <licenses>
         <license>
@@ -64,8 +64,8 @@
 
     <scm>
         <url>https://github.com/streamthoughts/kc4-streams</url>
-        <connection>scm:git:git://github.com:streamthoughts/kc4-streams.git</connection>
-        <developerConnection>scm:git:git@github.com:streamthoughts/kc4-streams.git</developerConnection>
+        <connection>scm:git:git://github.com:streamthoughts/kc4streams.git</connection>
+        <developerConnection>scm:git:git@github.com:streamthoughts/kc4streams.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
