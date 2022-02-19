@@ -27,7 +27,7 @@ package io.streamthoughts.kc4streams.listener;
 public interface StateRestoreService {
 
     /**
-     * Gets the state state of a the restoration process for given state store.
+     * Gets the state of the restoration process for given state store.
      *
      * @param state the name of the state.
      * @return      the {@link StateRestoreInfo}.

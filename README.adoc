@@ -1,8 +1,12 @@
 = KC4 Streams (Kafka Commons for Streams)
+:toc:
+:toc-placement!:
+
+toc::[]
 
 == Introduction
 
-**KC4 Streams** is a Java library that provides commons and reusable classes for building Kafka Streams applications.
+**KC4Streams** is a Java library that provides commons and reusable classes for building Kafka Streams applications.
 
 == Built With
 
@@ -33,71 +37,144 @@ implementation group: 'io.streamthoughts', name: 'kc4streams', version: '1.0.0'
 
 == Usage ?
 
-=== SafeDeserializer
+=== Error handling
 
-This library provides a `SafeDeserializer` that can be used to wrap an existing `Deserializer`.
-and catch any exception thrown during deserialization for returning a record called a sentinel-object
-that you filter later in the Topology (e.g null, "N/A", -1, etc).
+KafkaStreams allows you to register handler classes to specify how an exception should be handled.
 
-==== Creating a SafeDeserializer
+Here is the three interfaces that you can implement and configure :
 
-[source,bash]
+* `ProductionExceptionHandler`: Specifies how an exception when attempting to produce a result to Kafka should be handled.
+* `DeserializationExceptionHandler`: Specifies how an exception when attempting to deserialize an input record should be handled.
+* `StreamsUncaughtExceptionHandler`: Specifies how an exception when processing a record should be handled.
+
+For example, here is how you can set a custom deserialization exception :
+
+[source, java]
 ----
-SafeDeserializer deserializer = new SafeDeserializer<>(
-    new GenericAvroSerde().deserializer(), // the delegating deserializer
-    (GenericRecord)null     			   // the sentinel-object to return when an exception is catch
-);
-----
-
-==== Configuring a SafeDeserializer
-
-The sentinel-object to return can also be configured.
-
-[source,java]
-----
-SafeDeserializer<Double> deserializer = new SafeDeserializer<>(
-    Serdes.Double().deserializer(), // the delegating deserializer
-    Double.class    		        // the value type
-);
-
-Map<String, Object> configs = new HashMap<>();
-configs.put(SafeDeserializerConfig.SAFE_DESERIALIZER_DEFAULT_VALUE_CONFIG, 0.0);
-deserializer.configure(configs, false);
+clientProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class.getName());
 ----
 
-==== SafeSerde
+By default, KafkaStreams only provides a few built-in implementations for those interface that are not sufficient for a production usage.
 
-The `SafeSerde` is a utility class allowing you to wrap existing Serde or Deserializer.
+==== Kafka Streams and the DLQ (Dead Letter Queue)
 
-Behind the scene, `SafeSerde` uses the `SafeDeserializer` for wrapping existing Deserializer.
+In addition to the built-in exception handlers that Kafka Streams provides, KC4Streams implement custom handlers
+that let you send the record to a special Kafka topics acting as a DLQ.
 
-[source,java]
+Here is how you can configure them:
+
+[source, java]
 ----
-Serde<String> stringSerde = SafeSerdes.Double();
-// or
-SafeSerdes.serdeFrom(Serdes.String(), 0.0);
+// Handling production exception
+clientProps.put(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG, DeadLetterTopicProductionExceptionHandler.class.getName());
+
+// Handling deserialization exception
+clientProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, DeadLetterTopicProductionExceptionHandler.class.getName());
+
+// Handling stream uncautch exception
+var client = new KafkaStreams(buildTopology(), new StreamsConfig(clientProps));
+client.setUncaughtExceptionHandler(new DeadLetterTopicStreamUncaughtExceptionHandler(clientProps));
 ----
 
-=== Dead Letter Topic
+All the exception handlers can be configured with some default properties:
 
-This library provides the `DeadLetterTopicExceptionHandler` class that implements, the `DeserializationExceptionHandler` allowing to send corrupted records into a dedicated topic.
-By default, the `DeadLetterTopicExceptionHandler` will send corrupted records to a sink topic named based on the source topic - i.e: <source_topic_name>-rejected`.
+,===
+Property,Description,Type,Default
+`exception.handler.dlq.default.topic-extractor`, Specifies the fully-classified name of the class to be used for extracting the name of dead-letter topic, `class`, `DefaultDLQTopicNameExtractor`
+`exception.handler.dlq.default.reponse`, The default response that must be returned by the handler [FAIL|CONTINUE],`string`,
+`exception.handler.dlq.default.return-fail-on-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must fail,`List`,
+`exception.handler.dlq.default.return-continue-on-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must continue.,,
+`exception.handler.dlq.default.headers.<key>`,Specifies the value of a custom record-header to be added to the corrupted record send into the dead-letter topic.,`string`,
+,===
 
-In addition, the DeadLetterTopicExceptionHandler will enrich corrupted records with headers to help to investigate the cause of the exception.
+===== Setting the default DLQ name
 
-==== GlobalDeadLetterTopicCollector
+By default, DLQ handlers will send records in error to a dedicated topic named:
 
-The `GlobalDeadLetterTopicCollector` utility class can be used for sending corrupted record to a dedicated topic (i.e., a Dead-Letter-Topic)
-with contextual information about the error.
+* `<[source|sink]-topic-name>.<dlq-suffix>.<application-id>` (e.g., `input-topic-1.error.my-streaming-application`)
+
+,===
+Property,Description,Type,Default
+`exception.handler.dlq.default.topic-suffix`, Specifies the suffix to be used for naming the DLQ (optional), `string`, `error`.
+`exception.handler.dlq.default.topic-name`, Specifies the name of the DLQ to be used (optional), `string`, `error`.
+`exception.handler.dlq.default.topic-per-application-id`, Specifies whether the application-id for Kafka Streams should be used for naming the DLQ., `boolean`, `true`.
+,===
+
+In addition, you can implement custom `DLQTopicNameExtractor` class, as follows:
+
+[source, java]
+----
+class CustomDLQTopicNameExtractor implements DeadLetterTopicNameExtractor {
+    public String extract(final byte[] key, final byte[] value, final FailedRecordContext recordContext) {
+        return recordContext.topic() + "-DLQ";
+    }
+}
+----
+
+Then, you can configure that custom `DeadLetterTopicNameExtractor as follows:
+
+[source, java]
+----
+clientProps.put(DLQExceptionHandlerConfig.DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_CONFIG, CustomDLQTopicNameExtractor.class.getName());
+----
+
+===== Handling Production Exceptions
+
+The `DLQProductionExceptionHandler` configuration can be overridden with those following properties.
 
 Configuration::
 ,===
 Property,Description,Type,Default
-`exception.handler.dlq.global.producer.<config>`,,,
-`exception.handler.dlq.global.admin.<config>`,,,
-`exception.handler.dlq.topics.auto.create.enabled`, Specifies whether missing DLQ topics should be automatically created.,,,
-`exception.handler.dlq.topics.partitions`, Specifies the number of partitions to be used for DLQ topics.,,,
-`exception.handler.dlq.topics.replication.factors`, Specifies the replication factor to be used for DLQ topics.,,,
+`exception.handler.dlq.production.topic-extractor`, Specifies the fully-classified name of the class to be used for extracting the name of dead-letter topic, `class`, `DefaultDLQTopicNameExtractor`
+`exception.handler.dlq.production.reponse`, The default response that must be returned by the handler [FAIL|CONTINUE],`string`,
+`exception.handler.dlq.production.return-fail-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must fail,`List`,
+`exception.handler.dlq.production.return-continue-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must continue.,,
+`exception.handler.dlq.production.headers.<key>`,Specifies the value of a custom record-header to be added to the corrupted record send into the dead-letter topic.,`string`,
+,===
+
+===== Handling Deserialization Exceptions
+
+The `DLQDeserializationExceptionHandler` configuration can be overridden with those following properties.
+
+Configuration::
+,===
+Property,Description,Type,Default
+`exception.handler.dlq.deserialization.topic-extractor`, Specifies the fully-classified name of the class to be used for extracting the name of dead-letter topic, `class`, `DefaultDLQTopicNameExtractor`
+`exception.handler.dlq.deserialization.reponse`, The default response that must be returned by the handler [FAIL|CONTINUE],`string`,
+`exception.handler.dlq.deserialization.return-fail-on-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must fail,`List`,
+`exception.handler.dlq.deserialization.return-continue-on-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must continue.,,
+`exception.handler.dlq.deserialization.headers.<key>`,Specifies the value of a custom record-header to be added to the corrupted record send into the dead-letter topic.,`string`,
+,===
+
+===== Handling Stream Uncaught Exceptions
+
+The `DLQStreamUncaughtExceptionHandler` configuration can be overridden with those following properties.
+
+Configuration::
+,===
+Property,Description,Type,Default
+`exception.handler.dlq.streams.topic-extractor`, Specifies the fully-classified name of the class to be used for extracting the name of dead-letter topic, `class`, `DefaultDLQTopicNameExtractor`
+`exception.handler.dlq.streams.reponse`, The default response that must be returned by the handler [FAIL|CONTINUE],`string`,
+`exception.handler.dlq.streams.return-fail-errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must fail,`List`,
+`exception.handler.dlq.streams.continue.errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must continue.,,
+`exception.handler.dlq.streams.headers.<key>`,Specifies the value of a custom record-header to be added to the corrupted record send into the dead-letter topic.,`string`,
+,===
+
+===== Handling Processing Exceptions
+
+All the exception handlers that we discussed above internally used a singleton instance of the `DLQRecordCollector` class
+to send records to dedicated DLQs with contextual information about the errors.
+
+The `DLQRecordCollector` accepts the following config properties for specifying, for example, whether DLQs topic should be automatically created
+
+Configuration::
+,===
+Property,Description,Type,Default
+`exception.handler.dlq.global.producer.<config>`,Specifies the Producer's config properties to override,-,-
+`exception.handler.dlq.global.admin.<config>`,Specifies the AdminClient's config properties to override,-,-
+`exception.handler.dlq.topics.auto-create-enabled`, Specifies whether missing DLQ topics should be automatically created.,`string`,true
+`exception.handler.dlq.topics.num-partitions`, Specifies the number of partitions to be used for DLQ topics.,`integer`,-1
+`exception.handler.dlq.topics.replication-factors`, Specifies the replication factor to be used for DLQ topics.,`short`,-1
 ,===
 
 Usage::
@@ -107,7 +184,7 @@ Usage::
 Map<String, Object> streamsConfigs = new HashMap<>();
 
 // Initialize the GlobalDeadLetterTopicCollector.
-GlobalDeadLetterTopicCollector.getOrCreate(streamsConfigs);
+DLQRecordCollector.getOrCreate(streamsConfigs);
 
 // Create a Kafka Stream Topology
 StreamsBuilder streamsBuilder = new StreamsBuilder();
@@ -118,7 +195,7 @@ stream.mapValues((key, value) -> {
         output = Long.parseLong(value);
     } catch (Exception e) {
         // Sends the corrupted-record to a DLQ
-        GlobalDeadLetterTopicCollector.get().send(
+        DLQRecordCollector.get().send(
                 INPUT_TOPIC + "-DLQ",
                 key,
                 value,
@@ -131,25 +208,46 @@ stream.mapValues((key, value) -> {
 });
 ----
 
+==== SafeDeserializer & SafeSerde
 
-==== DeadLetterTopicExceptionHandler
+Another solution for dealing with deserialization exception is to return a _sentinel-value_  (e.g. `null`, `"N/A"`, `-1`)
+when a corrupted-record (a.k.a. _poison-pill_) is handle by a Kafka `Deserializer`.
 
-Common configurations::
-,===
-Property,Description,Type,Default
-`exception.handler.dlq.default.topic.extractor`, Specifies the fully-classified name of the class to be used for extracting the name of dead-letter topic, `class`, `io.streamthoughts.kc4streams.error.DefaultDeadLetterTopicNameExtractor`
-`exception.handler.dlq.default.reponse`, The default response that must be returned by the handler [FAIL|CONTINUE],`string`,
-`exception.handler.dlq.default.fail.errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must fail,`List`,
-`exception.handler.dlq.default.continue.errors`,Specifies the comma-separated list of FQCN of the exceptions on which the handler must continue.,,
-`exception.handler.dlq.default.headers.<key>`,Specifies the value of a custom record-header to be added to the corrupted record send into the dead-letter topic.,`string`,
-,===
+The `SafeDeserializer` can be used to wrap an existing `Deserializer` to catch any `Exception` that may be thrown when
+attempting to deserialize a record and return a configured (or default) value.
 
-Specific config properties for `ProducerExceptionHandler`
+Creating a SafeDeserializer::
+[source,bash]
+----
+SafeDeserializer deserializer = new SafeDeserializer<>(
+    new GenericAvroSerde().deserializer(), // the delegating deserializer
+    (GenericRecord)null     			   // the sentinel-object to return when an exception is catch
+);
+----
 
-Specific config properties for `StreamsUncaughtExceptionHandler`
+Configuring a SafeDeserializer::
+[source,java]
+----
+SafeDeserializer<Double> deserializer = new SafeDeserializer<>(
+    Serdes.Double().deserializer(), // the delegating deserializer
+    Double.class    		        // the value type
+);
 
+Map<String, Object> configs = new HashMap<>();
+configs.put(SafeDeserializerConfig.SAFE_DESERIALIZER_DEFAULT_VALUE_CONFIG, 0.0);
+deserializer.configure(configs, false);
+----
 
+In addition, you can use the `SafeSerde` utility class that allows wrapping an existing `Serde` or `Deserializer`.
 
+Behind the scene, `SafeSerde` uses the `SafeDeserializer` for wrapping existing Deserializer.
+
+[source,java]
+----
+Serde<String> stringSerde = SafeSerdes.Double();
+// or
+SafeSerdes.serdeFrom(Serdes.String(), 0.0);
+----
 
 === RocksDB
 
@@ -165,7 +263,7 @@ The custom implementation must then be configured using :
 streamsConfig.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
 ----
 
-**KC4 Streams** provides a built-in `io.streamthoughts.kc4.streams.rocksdb.StreamsRocksDBConfigSetter` that allows
+**KC4 Streams** provides a built-in `io.streamthoughts.kc4streams.rocksdb.StreamsRocksDBConfigSetter` that allows
 overriding not only some default RocksDB options but also to enable log statistics, for performance debugging, and shared memory usage.
 
 Configuration::
@@ -185,7 +283,7 @@ Property,Description,Type,Default
 `rocksdb.memory.strict.capacity.limit`,Create a block cache with strict capacity limit (i.e. insert to the cache will fail when cache is full). This property is only used when `rocksdb.memory.managed` is set to true or `rocksdb.block.cache.size` is set.,`boolean`,`false`
 `rocksdb.block.cache.size`,Specifies the total size to be used for caching uncompressed data blocks.,`long`,`false`
 `rocksdb.compaction.style`,Specifies the compaction style.,`string`,-
-`rocksdb.compression.type`,Specifies the compression type.`string`,-
+`rocksdb.compression.type`,Specifies the compression type.,`string`,-
 `rocksdb.files.open`,Specifies the maximum number of open files that can be used per RocksDB instance.,`long`,-
 `rocksdb.max.background.jobs`,Specifies the maximum number of concurrent background jobs (both flushes and compactions combined).,`integer`,-
 ,===
@@ -203,6 +301,10 @@ streamsConfig.put(RocksDBConfig.ROCKSDB_LOG_DIR_CONFIG, "/tmp/rocksdb-logs");
 NOTE: Please read the official documentation for more information: https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide[RocksDB Tuning Guide]
 
 === StateListener
+
+KafkaStreams allows you to register a `StateRestoreListener` for listening to various states of the restoration process of a `StateStore`.
+
+You can set the `LoggingStateRestoreListener` implementation for logging the restoration process.
 
 == Contribute to KC4 Streams
 

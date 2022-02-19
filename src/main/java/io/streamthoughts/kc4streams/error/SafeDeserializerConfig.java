@@ -28,7 +28,7 @@ import java.util.UUID;
 
 public class SafeDeserializerConfig extends AbstractConfig {
 
-    public static final String SAFE_DESERIALIZER_DEFAULT_VALUE_CONFIG = "safe.deserializer.default.object";
+    public static final String SAFE_DESERIALIZER_DEFAULT_VALUE_CONFIG = "safe.deserializer.default-object";
     public static final String SAFE_DESERIALIZER_DEFAULT_VALUE_DOC = "The default object value to return when an " +
             "input record cannot be de-serialized (default is null)";
 
@@ -37,7 +37,7 @@ public class SafeDeserializerConfig extends AbstractConfig {
     /**
      * Creates a new {@link SafeDeserializerConfig} instance.
      *
-     * @param originals the originals configuration.
+     * @param originals the original configuration.
      */
     public SafeDeserializerConfig(final Class<?> objectValueType, final Map<?, ?> originals) {
         super(configDef(typeFrom(objectValueType)), originals);

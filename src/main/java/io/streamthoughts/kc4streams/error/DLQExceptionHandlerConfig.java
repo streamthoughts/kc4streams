@@ -36,48 +36,48 @@ import java.util.stream.Collectors;
 /**
  * Class for configuring exception handler that support Dead Letter Topic.
  *
- * @see DeadLetterTopicProductionExceptionHandler
- * @see DeadLetterTopicDeserializationExceptionHandler
+ * @see DLQProductionExceptionHandler
+ * @see DLQDeserializationExceptionHandler
+ * @see DLQStreamUncaughtExceptionHandler
  */
-public class DeadLetterTopicExceptionHandlerConfig extends AbstractConfig {
+public class DLQExceptionHandlerConfig extends AbstractConfig {
 
-    private static final String DLQ_GROUP = "Dead Letter Topic";
+    private static final String DLQ_GROUP = "Dead Letter Queue";
 
     public static final String DLQ_DEFAULT_PREFIX_CONFIG = "exception.handler.dlq.default.";
 
-    public static final String DLQ_FAIL_ERRORS_CONFIG = "fail.errors";
-    public static final String DLQ_CONTINUE_CONFIG = "continue.errors";
-    public static final String DLQ_HEADERS_PREFIX_CONFIG = "headers.";
-    public static final String DLQ_RESPONSE_CONFIG = "response";
+    static final String DLQ_HEADERS_PREFIX_CONFIG = "headers.";
+    static final String DLQ_RESPONSE_CONFIG = "response";
 
-    public static final String DLQ_TOPIC_NAME_EXTRACTOR_CONFIG = "topic.extractor";
+    private static final String DLQ_TOPIC_NAME_EXTRACTOR_CONFIG = "topic-extractor";
+    public static final String DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_CONFIG = DLQ_DEFAULT_PREFIX_CONFIG + "topic-extractor";
+    public static final String DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_DOC
+            = "Specifies the fully-classified name of the class to be used for naming the DLQ.";
 
-    public static final String DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_CONFIG = DLQ_DEFAULT_PREFIX_CONFIG + "topic.extractor";
-    public static final String DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_DOC = "topic.extractor";
+    public static final String DLQ_DEFAULT_RESPONSE_CONFIG = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_RESPONSE_CONFIG;
+    private static final String DLQ_DEFAULT_RESPONSE_DOC
+            = "The default response that must be return by an handler [FAIL|CONTINUE]";
 
-    public static final String DLQ_DEFAULT_RESPONSE_CONFIG
-            = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_RESPONSE_CONFIG;
-    private static final String DLQ_DEFAULT_RESPONSE_DOC =
-            "The default response that must be return by an handler [FAIL|CONTINUE]";
-
-    public static final String DLQ_DEFAULT_FAIL_ERRORS_CONFIG
-            = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_FAIL_ERRORS_CONFIG;
+    static final String DLQ_FAIL_ERRORS_CONFIG = "return-fail-on-errors";
+    public static final String DLQ_DEFAULT_FAIL_ERRORS_CONFIG = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_FAIL_ERRORS_CONFIG;
     private static final String DLQ_DEFAULT_FATAL_ERRORS_DOC
-            = "List of exception classes on which the handler must fail.";
+            = "Specifies the list of exceptions for which the handler must fail.";
 
-    public static final String DLQ_DEFAULT_CONTINUE_ERRORS_CONFIG
-            = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_CONTINUE_CONFIG;
+    static final String DLQ_CONTINUE_CONFIG = "return-continue-on-errors";
+    public static final String DLQ_DEFAULT_CONTINUE_ERRORS_CONFIG = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_CONTINUE_CONFIG;
     private static final String DLQ_DEFAULT_CONTINUE_ERRORS_DOC
-            = "List of exception classes on which the handler must continue.";
+            = "Specifies the list of exceptions for which the handler must continue.";
 
-    public static final String DLQ_DEFAULT_HEADERS_PREFIX_CONFIG =
-            DLQ_DEFAULT_PREFIX_CONFIG + DLQ_HEADERS_PREFIX_CONFIG;
+    public static final String DLQ_DEFAULT_HEADERS_PREFIX_CONFIG = DLQ_DEFAULT_PREFIX_CONFIG + DLQ_HEADERS_PREFIX_CONFIG;
 
-    public static final String DLQ_PRODUCTION_PREFIX_CONFIG =
+    private static final String DLQ_PRODUCTION_PREFIX_CONFIG =
             "exception.handler.dlq.production.";
 
-    public static final String DLQ_DESERIALIZATION_PREFIX_CONFIG
-            = "exception.handler.dlq.deserialization.";
+    private static final String DLQ_DESERIALIZATION_PREFIX_CONFIG =
+            "exception.handler.dlq.deserialization.";
+
+    private static final String DLQ_STREAMS_PREFIX_CONFIG =
+            "exception.handler.dlq.streams.";
 
     public static final String EMPTY_PREFIX = "";
 
@@ -88,12 +88,12 @@ public class DeadLetterTopicExceptionHandlerConfig extends AbstractConfig {
     private final Set<Class<?>> failOnExceptions = new HashSet<>();
 
     /**
-     * Creates a new {@link DeadLetterTopicExceptionHandlerConfig} instance.
+     * Creates a new {@link DLQExceptionHandlerConfig} instance.
      *
      * @param originals the original configs.
      */
-    public DeadLetterTopicExceptionHandlerConfig(final Map<String, ?> originals,
-                                                 final ExceptionType exceptionType) {
+    public DLQExceptionHandlerConfig(final Map<String, ?> originals,
+                                     final ExceptionType exceptionType) {
         super(configDef(DLQ_DEFAULT_PREFIX_CONFIG, DLQ_GROUP), originals);
 
         final String configPrefix = getConfigPrefix(exceptionType);
@@ -143,19 +143,22 @@ public class DeadLetterTopicExceptionHandlerConfig extends AbstractConfig {
             prefix = DLQ_PRODUCTION_PREFIX_CONFIG;
         if (exceptionType == ExceptionType.DESERIALIZATION)
             prefix = DLQ_DESERIALIZATION_PREFIX_CONFIG;
+        if (exceptionType == ExceptionType.STREAM)
+            prefix = DLQ_STREAMS_PREFIX_CONFIG;
         return prefix;
     }
 
-    public DeadLetterTopicNameExtractor topicNameExtractor() {
-        DeadLetterTopicNameExtractor extractor = overriddenConfig.getConfiguredInstance(
+    @SuppressWarnings("unchecked")
+    public <K, V> DLQTopicNameExtractor<K, V>  topicNameExtractor() {
+        DLQTopicNameExtractor<K, V>  extractor = overriddenConfig.getConfiguredInstance(
                 DLQ_TOPIC_NAME_EXTRACTOR_CONFIG,
-                DeadLetterTopicNameExtractor.class
+                DLQTopicNameExtractor.class
         );
         if (extractor != null) return extractor;
 
         return getConfiguredInstance(
                 DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_CONFIG,
-                DeadLetterTopicNameExtractor.class
+                DLQTopicNameExtractor.class
         );
     }
 
@@ -237,7 +240,7 @@ public class DeadLetterTopicExceptionHandlerConfig extends AbstractConfig {
                 .define(
                         prefix + DLQ_TOPIC_NAME_EXTRACTOR_CONFIG,
                         ConfigDef.Type.CLASS,
-                        DefaultDeadLetterTopicNameExtractor.class,
+                        DefaultDLQTopicNameExtractor.class,
                         ConfigDef.Importance.HIGH,
                         DLQ_DEFAULT_TOPIC_NAME_EXTRACTOR_DOC,
                         group,
@@ -253,6 +256,10 @@ public class DeadLetterTopicExceptionHandlerConfig extends AbstractConfig {
 
     public static String prefixForDeserializationHandler(final String configKey) {
         return getConfigPrefix(ExceptionType.DESERIALIZATION) + configKey;
+    }
+
+    public static String prefixForStreamUncaughtHandler(final String configKey) {
+        return getConfigPrefix(ExceptionType.STREAM) + configKey;
     }
 
     private static class EnrichedExceptionHandlerConfig extends AbstractConfig {

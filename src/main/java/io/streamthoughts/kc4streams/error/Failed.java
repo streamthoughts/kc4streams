@@ -18,8 +18,10 @@
  */
 package io.streamthoughts.kc4streams.error;
 
+import io.streamthoughts.kc4streams.error.internal.FailedRecordContextBuilder;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.streams.processor.RecordContext;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -98,6 +100,15 @@ public class Failed {
         this.applicationId = Objects.requireNonNull(applicationId, "'applicationId' should not be null");
         this.exception = Objects.requireNonNull(exception, "'exception' should not be null");
         this.exceptionTypes = Objects.requireNonNull(exceptionTypes, "'exceptionTypes' should not be null");
+    }
+
+    public Failed withRecordContext(final RecordContext recordContext) {
+        withRecordTopic(recordContext.topic());
+        withRecordPartition(recordContext.partition());
+        withRecordOffset(recordContext.offset());
+        withRecordHeaders(recordContext.headers());
+        withRecordTimestamp(recordContext.timestamp());
+        return this;
     }
 
     /**
@@ -221,6 +232,16 @@ public class Failed {
      */
     Optional<Long> recordTimestamp() {
         return Optional.ofNullable(timestamp);
+    }
+
+    FailedRecordContext toFailedRecordContext() {
+        return FailedRecordContextBuilder.with(exception, exceptionTypes)
+                .withTopic(topic)
+                .withPartition(partition)
+                .withOffset(offset)
+                .withTimestamp(timestamp)
+                .withHeaders(headers)
+                .build();
     }
 
     /**

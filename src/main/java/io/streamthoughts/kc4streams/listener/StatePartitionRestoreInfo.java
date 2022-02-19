@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 StreamThoughts.
+ * Copyright 2022 StreamThoughts.
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
@@ -18,12 +18,10 @@
  */
 package io.streamthoughts.kc4streams.listener;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import org.apache.kafka.common.TopicPartition;
 
 import java.time.Duration;
+import java.util.Objects;
 
 /**
  * Describes the state of a restoration process for {@link TopicPartition}.
@@ -31,7 +29,6 @@ import java.time.Duration;
  * @see LoggingStateRestoreListener
  * @see org.apache.kafka.streams.processor.StateRestoreListener
  */
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class StatePartitionRestoreInfo {
 
     private final TopicPartition topicPartition;
@@ -106,7 +103,6 @@ public class StatePartitionRestoreInfo {
     /**
      * Gets the duration of the restoration process.
      */
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public Duration getDuration() {
         return duration;
     }
@@ -116,6 +112,29 @@ public class StatePartitionRestoreInfo {
      */
     public void setDuration(final Duration duration) {
         this.duration = duration;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        StatePartitionRestoreInfo that = (StatePartitionRestoreInfo) o;
+        return startingOffset == that.startingOffset &&
+               endingOffset == that.endingOffset &&
+               totalRestored == that.totalRestored &&
+               Objects.equals(topicPartition, that.topicPartition) &&
+               Objects.equals(duration, that.duration);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(topicPartition, startingOffset, endingOffset, totalRestored, duration);
     }
 
     /**

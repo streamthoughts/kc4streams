@@ -31,33 +31,32 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
 /**
- * The {@code GlobalDeadLetterTopicCollectorConfig} is used to initialize the
- * {@link GlobalDeadLetterTopicCollector} instance.
+ * Class used for configuring the {@link DLQRecordCollector} instance.
  *
- * @see GlobalDeadLetterTopicCollector#getOrCreate(GlobalDeadLetterTopicCollectorConfig).
+ * @see DLQRecordCollector#getOrCreate(DLQRecordCollectorConfig).
  */
-public class GlobalDeadLetterTopicCollectorConfig extends AbstractConfig {
+public class DLQRecordCollectorConfig extends AbstractConfig {
 
-    private static final String GROUP = "Global Dead Letter Topic Collector";
+    private static final String GROUP = "DLQ Record Collector";
 
     public static final String DLQ_GLOBAL_PRODUCER_PREFIX_CONFIG =
-            "exception.handler.dlq.global.producer.";
+            "exception.handler.dlq.collector.producer.";
 
     public static final String DLQ_GLOBAL_ADMIN_PREFIX_CONFIG =
-            "exception.handler.dlq.global.admin.";
+            "exception.handler.dlq.collector.admin.";
 
     public static final String DLQ_AUTO_CREATE_TOPIC_ENABLED_CONFIG
-            = "exception.handler.dlq.topics.auto.create.enabled";
+            = "exception.handler.dlq.topics-auto-create-enabled";
     private static final String DLQ_AUTO_CREATE_TOPIC_ENABLED_DOC
             = "If set to true, missing DLQ topic are automatically created.";
 
     public static final String DLQ_AUTO_CREATE_TOPIC_PARTITIONS_CONFIG
-            = "exception.handler.dlq.topics.partitions";
+            = "exception.handler.dlq.topics-num-partitions";
     private static final String DLQ_AUTO_CREATE_TOPIC_PARTITIONS_DOC
             = "The number of partitions to be used for DLQ topics.";
 
     public static final String DLQ_AUTO_CREATE_TOPIC_REPLICATION_CONFIG
-            = "exception.handler.dlq.topics.replication.factor";
+            = "exception.handler.dlq.topics.replication-factor";
 
     private static final String DLQ_AUTO_CREATE_TOPIC_REPLICATION_DOC
             = "The replication factor to be used for DLQ topics.";
@@ -77,11 +76,11 @@ public class GlobalDeadLetterTopicCollectorConfig extends AbstractConfig {
     private Map<String, Object> adminClientConfig = new HashMap<>();
 
     /**
-     * Creates a new {@link GlobalDeadLetterTopicCollectorConfig} instance.
+     * Creates a new {@link DLQRecordCollectorConfig} instance.
      *
      * @param originals the configuration.
      */
-    public GlobalDeadLetterTopicCollectorConfig(final Map<String, ?> originals) {
+    public DLQRecordCollectorConfig(final Map<String, ?> originals) {
         super(configDef(), originals, false);
         withAutoCreateTopicEnabled(getBoolean(DLQ_AUTO_CREATE_TOPIC_ENABLED_CONFIG));
         withTopicPartitions(getInt(DLQ_AUTO_CREATE_TOPIC_PARTITIONS_CONFIG));
@@ -99,66 +98,66 @@ public class GlobalDeadLetterTopicCollectorConfig extends AbstractConfig {
     }
 
     /**
-     * @return a new {@link GlobalDeadLetterTopicCollectorConfig}.
+     * @return a new {@link DLQRecordCollectorConfig}.
      */
-    public static GlobalDeadLetterTopicCollectorConfig create() {
-        return new GlobalDeadLetterTopicCollectorConfig(new HashMap<>());
+    public static DLQRecordCollectorConfig create() {
+        return new DLQRecordCollectorConfig(new HashMap<>());
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withProducer(final Producer<byte[], byte[]> producer) {
+    public DLQRecordCollectorConfig withProducer(final Producer<byte[], byte[]> producer) {
         this.producer = producer;
         return this;
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withAdminClient(final AdminClient adminClient) {
+    public DLQRecordCollectorConfig withAdminClient(final AdminClient adminClient) {
         this.adminClient = adminClient;
         return this;
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withProducerConfig(
+    public DLQRecordCollectorConfig withProducerConfig(
             final Map<String, Object> producerConfig) {
         this.producerConfig = producerConfig;
         return this;
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withAdminClientConfig(
+    public DLQRecordCollectorConfig withAdminClientConfig(
             final Map<String, Object> adminClientConfig) {
         this.adminClientConfig = adminClientConfig;
         return this;
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withAutoCreateTopicEnabled(
+    public DLQRecordCollectorConfig withAutoCreateTopicEnabled(
             final boolean isAutoCreateTopicEnabled) {
         this.isAutoCreateTopicEnabled = isAutoCreateTopicEnabled;
         return this;
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withTopicPartitions(final Integer topicPartitions) {
+    public DLQRecordCollectorConfig withTopicPartitions(final Integer topicPartitions) {
         this.topicPartitions = topicPartitions;
         return this;
     }
 
-    public GlobalDeadLetterTopicCollectorConfig withReplicationFactor(final Short replicationFactor) {
+    public DLQRecordCollectorConfig withReplicationFactor(final Short replicationFactor) {
         this.replicationFactor = replicationFactor;
         return this;
     }
 
     /**
-     * @return the {@link Producer} to be used by the {@link GlobalDeadLetterTopicCollector}.
+     * @return the {@link Producer} to be used by the {@link DLQRecordCollector}.
      */
     Optional<Producer<byte[], byte[]>> getProducer() {
         return Optional.ofNullable(producer);
     }
 
     /**
-     * @return the {@link AdminClient} to be used by the {@link GlobalDeadLetterTopicCollector}.
+     * @return the {@link AdminClient} to be used by the {@link DLQRecordCollector}.
      */
     Optional<AdminClient> getAdminClient() {
         return Optional.ofNullable(adminClient);
     }
 
     /**
-     * @return the config properties to be used by the {@link GlobalDeadLetterTopicCollector} for creating a new
+     * @return the config properties to be used by the {@link DLQRecordCollector} for creating a new
      * {@link Producer} if no one is configured.
      */
     Map<String, Object> getProducerConfig() {
@@ -166,7 +165,7 @@ public class GlobalDeadLetterTopicCollectorConfig extends AbstractConfig {
     }
 
     /**
-     * @return the config properties to be used by the {@link GlobalDeadLetterTopicCollector} for creating a new
+     * @return the config properties to be used by the {@link DLQRecordCollector} for creating a new
      * {@link AdminClient} if no one is configured.
      */
     Map<String, Object> getAdminClientConfig() {
@@ -174,7 +173,7 @@ public class GlobalDeadLetterTopicCollectorConfig extends AbstractConfig {
     }
 
     /**
-     * @return {@code true} if the  {@link GlobalDeadLetterTopicCollector} should create missing topics.
+     * @return {@code true} if the  {@link DLQRecordCollector} should create missing topics.
      */
     boolean isAutoCreateTopicEnabled() {
         return isAutoCreateTopicEnabled;

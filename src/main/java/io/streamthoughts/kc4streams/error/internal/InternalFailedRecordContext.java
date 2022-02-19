@@ -33,6 +33,7 @@ final class InternalFailedRecordContext implements FailedRecordContext {
     private final Integer partition;
     private final String topic;
     private final Headers headers;
+    private final String applicationId;
 
     /**
      * Creates a new {@link InternalFailedRecordContext} instance.
@@ -43,7 +44,8 @@ final class InternalFailedRecordContext implements FailedRecordContext {
                                 final Long timestamp,
                                 final Integer partition,
                                 final String topic,
-                                final Headers headers) {
+                                final Headers headers,
+                                final String applicationId) {
         this.exception = exception;
         this.exceptionType = exceptionType;
         this.offset = offset;
@@ -51,6 +53,7 @@ final class InternalFailedRecordContext implements FailedRecordContext {
         this.partition = partition;
         this.topic = topic;
         this.headers = headers;
+        this.applicationId = applicationId;
     }
 
     /**
@@ -67,6 +70,14 @@ final class InternalFailedRecordContext implements FailedRecordContext {
     @Override
     public ExceptionType exceptionType() {
         return exceptionType;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String applicationId() {
+        return applicationId;
     }
 
     /**
@@ -122,6 +133,7 @@ final class InternalFailedRecordContext implements FailedRecordContext {
                 ", partition=" + partition +
                 ", topic=" + topic +
                 ", headers=" + headers +
+                ", applicationId=" + applicationId +
                 ']';
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 StreamThoughts.
+ * Copyright 2022 StreamThoughts.
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class DeadLetterTopicExceptionHandlerTestUtils {
+public class DLQExceptionHandlerTestUtils {
 
   public static final String TEST_TOPIC = "test-topic";
   public static final String TEST_APP = "test-app";
@@ -47,7 +47,7 @@ public class DeadLetterTopicExceptionHandlerTestUtils {
 
   static final ProducerRecord<byte[], byte[]> TEST_PRODUCER_RECORD =
       new ProducerRecord<>(
-          DeadLetterTopicExceptionHandlerTestUtils.TEST_TOPIC,
+          DLQExceptionHandlerTestUtils.TEST_TOPIC,
           0,
           TEST_RECORD_KEY.getBytes(StandardCharsets.UTF_8),
           TEST_RECORD_VALUE.getBytes(StandardCharsets.UTF_8),
@@ -55,7 +55,7 @@ public class DeadLetterTopicExceptionHandlerTestUtils {
 
   static final ConsumerRecord<byte[], byte[]> TEST_CONSUMER_RECORD =
       new ConsumerRecord<>(
-          DeadLetterTopicExceptionHandlerTestUtils.TEST_TOPIC,
+          DLQExceptionHandlerTestUtils.TEST_TOPIC,
           0,
           1235L,
           0L,
@@ -97,7 +97,7 @@ public class DeadLetterTopicExceptionHandlerTestUtils {
   private static Map<String, String> assertCommonsHeadersAndGet(
       final ProducerRecord<byte[], byte[]> record, final Exception e) {
 
-    assertEquals(TEST_TOPIC + DefaultDeadLetterTopicNameExtractor.DEFAULT_SUFFIX, record.topic());
+    assertEquals(TEST_TOPIC + DefaultDLQTopicNameExtractor.DEFAULT_SUFFIX, record.topic());
 
     final Map<String, String> headers =
         Stream.of(record.headers().toArray())

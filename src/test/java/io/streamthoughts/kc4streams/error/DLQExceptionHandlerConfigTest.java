@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 StreamThoughts.
+ * Copyright 2022 StreamThoughts.
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
@@ -33,30 +33,30 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DeadLetterTopicExceptionHandlerConfigTest {
+public class DLQExceptionHandlerConfigTest {
 
   @Test
   public void should_return_defaults_given_empty_configs() {
     var config =
-        new DeadLetterTopicExceptionHandlerConfig(Map.of(), ExceptionType.DESERIALIZATION);
+        new DLQExceptionHandlerConfig(Map.of(), ExceptionType.DESERIALIZATION);
     assertTrue(config.customHeaders().isEmpty());
     assertTrue(config.getIgnoredExceptions().isEmpty());
     assertTrue(config.getFatalExceptions().isEmpty());
     assertNull(config.defaultHandlerResponseOrElse(null));
     assertNotNull(config.topicNameExtractor());
-    assertTrue(config.topicNameExtractor().getClass().isAssignableFrom(DefaultDeadLetterTopicNameExtractor.class));
+    assertTrue(config.topicNameExtractor().getClass().isAssignableFrom(DefaultDLQTopicNameExtractor.class));
   }
 
   @Test
   public void should_returns_configured_values_given_non_empty_configs() {
     var config =
-        new DeadLetterTopicExceptionHandlerConfig(
+        new DLQExceptionHandlerConfig(
             Map.of(
-                DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_CONTINUE_ERRORS_CONFIG,
+                DLQExceptionHandlerConfig.DLQ_DEFAULT_CONTINUE_ERRORS_CONFIG,
                 RecordTooLargeException.class.getName(),
-                DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_FAIL_ERRORS_CONFIG,
+                DLQExceptionHandlerConfig.DLQ_DEFAULT_FAIL_ERRORS_CONFIG,
                 AuthorizationException.class.getName(),
-                DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
+                DLQExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
                 ExceptionHandlerResponse.CONTINUE.name()),
             ExceptionType.DESERIALIZATION);
 
@@ -74,11 +74,11 @@ public class DeadLetterTopicExceptionHandlerConfigTest {
   @Test
   public void should_returns_overridden_topic_given_non_empty_configs_for_deserialization() {
     var config =
-        new DeadLetterTopicExceptionHandlerConfig(
+        new DLQExceptionHandlerConfig(
             Map.of(
-                DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
+                DLQExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
                 ExceptionHandlerResponse.CONTINUE.name(),
-                DeadLetterTopicExceptionHandlerConfig.prefixForDeserializationHandler(DeadLetterTopicExceptionHandlerConfig.DLQ_RESPONSE_CONFIG),
+                DLQExceptionHandlerConfig.prefixForDeserializationHandler(DLQExceptionHandlerConfig.DLQ_RESPONSE_CONFIG),
                 ExceptionHandlerResponse.FAIL.name()
             ),
             ExceptionType.DESERIALIZATION
@@ -89,11 +89,11 @@ public class DeadLetterTopicExceptionHandlerConfigTest {
   @Test
   public void should_returns_overridden_topic_given_non_empty_configs_for_production() {
     var config =
-            new DeadLetterTopicExceptionHandlerConfig(
+            new DLQExceptionHandlerConfig(
                     Map.of(
-                            DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
+                            DLQExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
                             ExceptionHandlerResponse.CONTINUE.name(),
-                            DeadLetterTopicExceptionHandlerConfig.prefixForProductionHandler(DeadLetterTopicExceptionHandlerConfig.DLQ_RESPONSE_CONFIG),
+                            DLQExceptionHandlerConfig.prefixForProductionHandler(DLQExceptionHandlerConfig.DLQ_RESPONSE_CONFIG),
                             ExceptionHandlerResponse.FAIL.name()
                     ),
                     ExceptionType.PRODUCTION
@@ -107,11 +107,11 @@ public class DeadLetterTopicExceptionHandlerConfigTest {
     var exception =
         assertThrows(
             ConfigException.class,
-            () -> new DeadLetterTopicExceptionHandlerConfig(
+            () -> new DLQExceptionHandlerConfig(
                 Map.of(
-                    DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_CONTINUE_ERRORS_CONFIG,
+                    DLQExceptionHandlerConfig.DLQ_DEFAULT_CONTINUE_ERRORS_CONFIG,
                     RecordTooLargeException.class.getName(),
-                    DeadLetterTopicExceptionHandlerConfig.DLQ_DEFAULT_FAIL_ERRORS_CONFIG,
+                    DLQExceptionHandlerConfig.DLQ_DEFAULT_FAIL_ERRORS_CONFIG,
                     RecordTooLargeException.class.getName()),
                     ExceptionType.DESERIALIZATION
             ));

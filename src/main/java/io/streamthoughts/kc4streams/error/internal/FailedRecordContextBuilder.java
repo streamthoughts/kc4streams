@@ -20,14 +20,14 @@ package io.streamthoughts.kc4streams.error.internal;
 
 import io.streamthoughts.kc4streams.error.ExceptionType;
 import io.streamthoughts.kc4streams.error.FailedRecordContext;
-import io.streamthoughts.kc4streams.error.DeadLetterTopicNameExtractor;
+import io.streamthoughts.kc4streams.error.DLQTopicNameExtractor;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.streams.processor.RecordContext;
 
 /**
  * The {@link FailedRecordContextBuilder} can be used to build a new {@link FailedRecordContext}.
  *
- * @see DeadLetterTopicNameExtractor
+ * @see DLQTopicNameExtractor
  */
 public final class FailedRecordContextBuilder {
 
@@ -38,6 +38,7 @@ public final class FailedRecordContextBuilder {
     private Integer partition;
     private String topic;
     private Headers headers;
+    private String applicationId;
 
     /**
      * Creates a new {@link FailedRecordContextBuilder} for the given exception.
@@ -92,6 +93,11 @@ public final class FailedRecordContextBuilder {
         return this;
     }
 
+    public FailedRecordContextBuilder withApplicationId(final String applicationId) {
+        this.applicationId = applicationId;
+        return this;
+    }
+
     public FailedRecordContextBuilder withTopic(final String topic) {
         this.topic = topic;
         return this;
@@ -128,7 +134,8 @@ public final class FailedRecordContextBuilder {
                 timestamp,
                 partition,
                 topic,
-                headers
+                headers,
+                applicationId
         );
     }
 }

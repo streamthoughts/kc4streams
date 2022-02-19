@@ -18,8 +18,7 @@
  */
 package io.streamthoughts.kc4streams.error;
 
-import io.streamthoughts.kc4streams.error.internal.FailedRecordContextBuilder;
-import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,29 +26,34 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 /**
- * The {@code DeadLetterTopicStreamUncaughtExceptionHandler} can be used to send corrupted records
- * to a dead-letter-topic.
- *
- * @see DeserializationExceptionHandler
+ * This {@link StreamsUncaughtExceptionHandler} can be used to send record to a dedicated Dead Letter Queue (DLQ).
  */
-public class DeadLetterTopicStreamUncaughtExceptionHandler
-        extends AbstractDeadLetterTopicExceptionHandler implements StreamsUncaughtExceptionHandler {
+public class DLQStreamUncaughtExceptionHandler
+        extends AbstractDLQExceptionHandler implements StreamsUncaughtExceptionHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DeadLetterTopicStreamUncaughtExceptionHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DLQStreamUncaughtExceptionHandler.class);
 
     /**
-     * Creates a new {@link DeadLetterTopicStreamUncaughtExceptionHandler} instance.
+     * Creates a new {@link DLQStreamUncaughtExceptionHandler} instance.
      */
-    public DeadLetterTopicStreamUncaughtExceptionHandler() {
+    public DLQStreamUncaughtExceptionHandler() {
         super(ExceptionType.STREAM);
     }
 
     /**
-     * {@inheritDoc}
+     * Creates a new {@link DLQStreamUncaughtExceptionHandler} instance.
      */
-    @Override
-    public void configure(final Map<String, ?> configs) {
-        super.configure(configs);
+    public DLQStreamUncaughtExceptionHandler(final Map<String, ?> configProps) {
+        super(ExceptionType.STREAM);
+        configure(configProps);
+    }
+
+    /**
+     * Creates a new {@link DLQStreamUncaughtExceptionHandler} instance.
+     */
+    public DLQStreamUncaughtExceptionHandler(final StreamsConfig streamsConfig) {
+        super(ExceptionType.STREAM);
+        configure(streamsConfig.originals());
     }
 
     /**
@@ -58,19 +62,13 @@ public class DeadLetterTopicStreamUncaughtExceptionHandler
     @Override
     public StreamThreadExceptionResponse handle(final Throwable exception) {
 
-        final DeadLetterTopicNameExtractor extractor = config().topicNameExtractor();
-        final String extractedOutputTopic =  extractor.extract(
-                null,
-                null,
-                FailedRecordContextBuilder.with(exception, ExceptionType.STREAM).build()
-        );
-
-        if (GlobalDeadLetterTopicCollector.isCreated()) {
+        if (DLQRecordCollector.isCreated()) {
             final Failed failed = Failed.withStreamError(applicationId(), exception);
-            GlobalDeadLetterTopicCollector.get().send(extractedOutputTopic, failed);
+            DLQTopicNameExtractor<?, ?> topicNameExtractor = config().topicNameExtractor();
+            DLQRecordCollector.get().send(topicNameExtractor, failed);
         } else {
             LOG.warn("Failed to send corrupted record to Dead Letter Topic. "
-                    + "GlobalDeadLetterTopicCollector is not initialized.");
+                    + "DLQRecordCollector is not initialized.");
         }
 
         final ExceptionHandlerResponse response = getHandlerResponseForExceptionOrElse(

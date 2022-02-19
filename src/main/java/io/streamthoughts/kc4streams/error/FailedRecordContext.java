@@ -32,7 +32,12 @@ public interface FailedRecordContext extends RecordContext {
     Throwable exception();
 
     /**
-     * @return the exception type.
+     * @return the {@link ExceptionType}.
      */
     ExceptionType exceptionType();
+
+    /**
+     * @return  the string application-id.
+     */
+    String applicationId();
 }

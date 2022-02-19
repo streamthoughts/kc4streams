@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-class AbstractDeadLetterTopicExceptionHandler implements Configurable {
+class AbstractDLQExceptionHandler implements Configurable {
 
-    private DeadLetterTopicExceptionHandlerConfig config;
+    private DLQExceptionHandlerConfig config;
 
     private List<Header> customHeaders;
 
@@ -37,11 +37,11 @@ class AbstractDeadLetterTopicExceptionHandler implements Configurable {
     private final ExceptionType exceptionTypes;
 
     /**
-     * Creates a new {@link AbstractDeadLetterTopicExceptionHandler} instance.
+     * Creates a new {@link AbstractDLQExceptionHandler} instance.
      *
      * @param exceptionTypes the exception type.
      */
-    AbstractDeadLetterTopicExceptionHandler(final ExceptionType exceptionTypes) {
+    AbstractDLQExceptionHandler(final ExceptionType exceptionTypes) {
         this.exceptionTypes = Objects.requireNonNull(exceptionTypes, "'exceptionType' should not be null");
     }
 
@@ -50,20 +50,20 @@ class AbstractDeadLetterTopicExceptionHandler implements Configurable {
      */
     @Override
     public void configure(final Map<String, ?> configs) {
-        config = new DeadLetterTopicExceptionHandlerConfig(configs, exceptionTypes);
+        config = new DLQExceptionHandlerConfig(configs, exceptionTypes);
         applicationId = (String) configs.get(StreamsConfig.APPLICATION_ID_CONFIG);
         customHeaders = config.customHeaders();
         mayInitializeGlobalCollector(configs);
     }
 
     public void mayInitializeGlobalCollector(final Map<String, ?> configs) {
-        final GlobalDeadLetterTopicCollectorConfig collectorConfig = new GlobalDeadLetterTopicCollectorConfig(configs);
+        final DLQRecordCollectorConfig collectorConfig = new DLQRecordCollectorConfig(configs);
         if (!collectorConfig.getProducerConfig().isEmpty()) {
-            GlobalDeadLetterTopicCollector.getOrCreate(collectorConfig);
+            DLQRecordCollector.getOrCreate(collectorConfig);
         }
     }
 
-    protected DeadLetterTopicExceptionHandlerConfig config() {
+    protected DLQExceptionHandlerConfig config() {
         return config;
     }
 

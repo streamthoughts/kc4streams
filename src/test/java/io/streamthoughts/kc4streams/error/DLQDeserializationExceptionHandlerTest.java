@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 StreamThoughts.
+ * Copyright 2022 StreamThoughts.
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
@@ -32,11 +32,11 @@ import org.mockito.Mockito;
 import java.util.List;
 import java.util.Map;
 
-import static io.streamthoughts.kc4streams.error.DeadLetterTopicExceptionHandlerTestUtils.TEST_CONSUMER_RECORD;
-import static io.streamthoughts.kc4streams.error.DeadLetterTopicExceptionHandlerTestUtils.assertProducedRecord;
+import static io.streamthoughts.kc4streams.error.DLQExceptionHandlerTestUtils.TEST_CONSUMER_RECORD;
+import static io.streamthoughts.kc4streams.error.DLQExceptionHandlerTestUtils.assertProducedRecord;
 import static org.apache.kafka.streams.errors.DeserializationExceptionHandler.DeserializationHandlerResponse.CONTINUE;
 
-public class DeadLetterTopicDeserializationExceptionHandlerTest {
+public class DLQDeserializationExceptionHandlerTest {
 
   private ProcessorContext mkContext;
 
@@ -47,7 +47,7 @@ public class DeadLetterTopicDeserializationExceptionHandlerTest {
 
   @BeforeEach
   public void tearDown() {
-    GlobalDeadLetterTopicCollector.clear();
+    DLQRecordCollector.clear();
   }
 
   @Test
@@ -56,13 +56,13 @@ public class DeadLetterTopicDeserializationExceptionHandlerTest {
     MockProducer<byte[], byte[]> mkProducer =
         new MockProducer<>(true, new ByteArraySerializer(), new ByteArraySerializer());
 
-    GlobalDeadLetterTopicCollector.getOrCreate(
-            GlobalDeadLetterTopicCollectorConfig.create()
+    DLQRecordCollector.getOrCreate(
+            DLQRecordCollectorConfig.create()
             .withProducer(mkProducer)
             .withAutoCreateTopicEnabled(false)
     );
 
-    final var handler = new DeadLetterTopicDeserializationExceptionHandler();
+    final var handler = new DLQDeserializationExceptionHandler();
     handler.configure(Map.of(StreamsConfig.APPLICATION_ID_CONFIG, "test-app"));
 
     final var exception = new RecordTooLargeException("RecordTooLargeException");

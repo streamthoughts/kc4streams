@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 StreamThoughts.
+ * Copyright 2022 StreamThoughts.
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
@@ -30,16 +30,16 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static io.streamthoughts.kc4streams.error.DeadLetterTopicExceptionHandlerTestUtils.TEST_PRODUCER_RECORD;
-import static io.streamthoughts.kc4streams.error.DeadLetterTopicExceptionHandlerTestUtils.assertProducedRecord;
+import static io.streamthoughts.kc4streams.error.DLQExceptionHandlerTestUtils.TEST_PRODUCER_RECORD;
+import static io.streamthoughts.kc4streams.error.DLQExceptionHandlerTestUtils.assertProducedRecord;
 import static org.apache.kafka.streams.errors.ProductionExceptionHandler.ProductionExceptionHandlerResponse.CONTINUE;
 import static org.apache.kafka.streams.errors.ProductionExceptionHandler.ProductionExceptionHandlerResponse.FAIL;
 
-public class DeadLetterTopicProductionExceptionHandlerTest {
+public class DLQProductionExceptionHandlerTest {
 
   @BeforeEach
   public void tearDown() {
-    GlobalDeadLetterTopicCollector.clear();
+    DLQRecordCollector.clear();
   }
 
   @Test
@@ -47,12 +47,12 @@ public class DeadLetterTopicProductionExceptionHandlerTest {
     MockProducer<byte[], byte[]> mkProducer =
         new MockProducer<>(true, new ByteArraySerializer(), new ByteArraySerializer());
 
-    GlobalDeadLetterTopicCollector.getOrCreate(
-        GlobalDeadLetterTopicCollectorConfig.create()
+    DLQRecordCollector.getOrCreate(
+        DLQRecordCollectorConfig.create()
             .withProducer(mkProducer)
             .withAutoCreateTopicEnabled(false));
 
-    var handler = new DeadLetterTopicProductionExceptionHandler();
+    var handler = new DLQProductionExceptionHandler();
     handler.configure(Map.of(StreamsConfig.APPLICATION_ID_CONFIG, "test-app"));
 
     var exception = new RecordTooLargeException("RecordTooLargeException");
@@ -65,7 +65,7 @@ public class DeadLetterTopicProductionExceptionHandlerTest {
 
   @Test
   public void should_not_send_to_dlq_when_global_producer_is_not_configured() {
-    var handler = new DeadLetterTopicProductionExceptionHandler();
+    var handler = new DLQProductionExceptionHandler();
     handler.configure(Map.of(StreamsConfig.APPLICATION_ID_CONFIG, "test-app"));
 
     var response =
@@ -76,11 +76,11 @@ public class DeadLetterTopicProductionExceptionHandlerTest {
 
   @Test
   public void should_return_continue_when_handler_is_configured() {
-    var handler = new DeadLetterTopicProductionExceptionHandler();
+    var handler = new DLQProductionExceptionHandler();
     handler.configure(
         Map.of(
             StreamsConfig.APPLICATION_ID_CONFIG, "test-app",
-            DeadLetterTopicExceptionHandlerConfig.prefixForProductionHandler(DeadLetterTopicExceptionHandlerConfig.DLQ_RESPONSE_CONFIG), ExceptionHandlerResponse.CONTINUE.name()
+            DLQExceptionHandlerConfig.prefixForProductionHandler(DLQExceptionHandlerConfig.DLQ_RESPONSE_CONFIG), ExceptionHandlerResponse.CONTINUE.name()
         )
     );
 

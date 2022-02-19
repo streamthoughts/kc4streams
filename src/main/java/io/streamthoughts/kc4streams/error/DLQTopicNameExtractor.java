@@ -26,7 +26,7 @@ import java.util.Map;
  * An interface that allows to dynamically determine the name of the Kafka topic
  * to send corrupted record.
  */
-public interface DeadLetterTopicNameExtractor extends Configurable {
+public interface DLQTopicNameExtractor<K, V> extends Configurable {
 
     /**
      * Configure this class with the given key-value pairs
@@ -39,14 +39,14 @@ public interface DeadLetterTopicNameExtractor extends Configurable {
     /**
      * Extracts the topic name to send to. The topic will be automatically created if it does not already exist.
      *
-     * @see GlobalDeadLetterTopicCollector
-     * @see GlobalDeadLetterTopicCollectorConfig
+     * @see DLQRecordCollector
+     * @see DLQRecordCollectorConfig
      *
      * @param key           the record key
      * @param value         the record value
      * @param recordContext current context metadata of the record
      * @return              the topic name this record should be sent to
      */
-    String extract(final byte[] key, final byte[] value, final FailedRecordContext recordContext);
+    String extract(final K key, final V value, final FailedRecordContext recordContext);
 
 }

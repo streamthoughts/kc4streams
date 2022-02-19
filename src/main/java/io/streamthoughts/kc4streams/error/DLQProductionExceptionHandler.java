@@ -18,9 +18,8 @@
  */
 package io.streamthoughts.kc4streams.error;
 
-import io.streamthoughts.kc4streams.error.internal.FailedRecordContextBuilder;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serdes.ByteArraySerde;
 import org.apache.kafka.streams.errors.ProductionExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,20 +27,18 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 /**
- * The {@code DeadLetterTopicProductionExceptionHandler} can be used to send a message to dead-letter-topic
- * when an exception happens while producing sink record.
- *
- * @see ProductionExceptionHandler
+ * This {@link ProductionExceptionHandler} can be used to send a result record to a dedicated Dead Letter Queue (DLQ)
+ * when an exception is thrown while attempting to produce to a Kafka topic.
  */
-public class DeadLetterTopicProductionExceptionHandler
-        extends AbstractDeadLetterTopicExceptionHandler implements ProductionExceptionHandler {
+public class DLQProductionExceptionHandler
+        extends AbstractDLQExceptionHandler implements ProductionExceptionHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DeadLetterTopicProductionExceptionHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DLQProductionExceptionHandler.class);
 
     /**
-     * Creates a new {@link DeadLetterTopicProductionExceptionHandler} instance.
+     * Creates a new {@link DLQProductionExceptionHandler} instance.
      */
-    public DeadLetterTopicProductionExceptionHandler() {
+    public DLQProductionExceptionHandler() {
         super(ExceptionType.PRODUCTION);
     }
 
@@ -63,16 +60,15 @@ public class DeadLetterTopicProductionExceptionHandler
         final ExceptionHandlerResponse response =
                 getHandlerResponseForExceptionOrElse(exception, ExceptionHandlerResponse.FAIL);
 
-        final String extractedOutputTopic = extractOutputTopicName(record, exception);
-
         LOG.error(
                 "Failed to produce output record to '{}-{}': {}.",
                 record.topic(),
                 record.partition(),
                 response,
-                exception);
+                exception
+        );
 
-        if (GlobalDeadLetterTopicCollector.isCreated()) {
+        if (DLQRecordCollector.isCreated()) {
             final Failed failed = Failed
                     .withProductionError(applicationId(), exception)
                     .withRecordTopic(record.topic())
@@ -81,18 +77,19 @@ public class DeadLetterTopicProductionExceptionHandler
                     .withRecordType(Failed.RecordType.SINK)
                     .withRecordHeaders(record.headers());
 
-            GlobalDeadLetterTopicCollector.get().send(
-                extractedOutputTopic,
+            ByteArraySerde serde = new ByteArraySerde();
+            DLQRecordCollector.get().send(
+                    config().topicNameExtractor(),
                     record.key(),
                     record.value(),
-                    Serdes.ByteArray().serializer(),
-                    Serdes.ByteArray().serializer(),
+                    serde.serializer(),
+                    serde.serializer(),
                     failed
 
             );
         } else {
             LOG.warn("Failed to send corrupted record to Dead Letter Topic. "
-                    + "GlobalDeadLetterTopicCollector is not initialized.");
+                    + "DLQRecordCollector is not initialized.");
         }
 
         switch (response) {
@@ -105,16 +102,4 @@ public class DeadLetterTopicProductionExceptionHandler
         }
     }
 
-    private String extractOutputTopicName(final ProducerRecord<byte[], byte[]> record,
-                                          final Exception exception) {
-        final DeadLetterTopicNameExtractor extractor = config().topicNameExtractor();
-        final FailedRecordContext recordContext = FailedRecordContextBuilder.with(exception, ExceptionType.DESERIALIZATION)
-                .withTopic(record.topic())
-                .withPartition(record.partition())
-                .withTimestamp(record.timestamp())
-                .withHeaders(record.headers())
-                .build();
-
-        return extractor.extract(record.key(), record.value(), recordContext);
-    }
 }

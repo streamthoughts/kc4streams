@@ -18,7 +18,6 @@
  */
 package io.streamthoughts.kc4streams.error;
 
-import io.streamthoughts.kc4streams.error.internal.FailedRecordContextBuilder;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
@@ -31,20 +30,18 @@ import java.util.Map;
 import static io.streamthoughts.kc4streams.error.ExceptionType.DESERIALIZATION;
 
 /**
- * The {@code DeadLetterTopicDeserializationExceptionHandler} can be used to send corrupted records
- * to a dead-letter-topic.
- *
- * @see DeserializationExceptionHandler
+ * This {@link DeserializationExceptionHandler} can be used to send a corrupted record to a dedicated Dead Letter Queue (DLQ)
+ * when an exception thrown while attempting to deserialize it.
  */
-public class DeadLetterTopicDeserializationExceptionHandler
-        extends AbstractDeadLetterTopicExceptionHandler implements DeserializationExceptionHandler {
+public class DLQDeserializationExceptionHandler
+        extends AbstractDLQExceptionHandler implements DeserializationExceptionHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DeadLetterTopicDeserializationExceptionHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DLQDeserializationExceptionHandler.class);
 
     /**
-     * Creates a new {@link DeadLetterTopicDeserializationExceptionHandler} instance.
+     * Creates a new {@link DLQDeserializationExceptionHandler} instance.
      */
-    public DeadLetterTopicDeserializationExceptionHandler() {
+    public DLQDeserializationExceptionHandler() {
         super(DESERIALIZATION);
     }
 
@@ -64,16 +61,7 @@ public class DeadLetterTopicDeserializationExceptionHandler
                                                  final ConsumerRecord<byte[], byte[]> record,
                                                  final Exception exception) {
 
-        final String extractedOutputTopic = extractOutputTopicName(record, exception);
-
-        LOG.debug(
-                "Sending rejected record from topic={}, partition={}, offset={} into topic {}",
-                record.topic(),
-                record.partition(),
-                record.offset(),
-                extractedOutputTopic);
-
-        if (GlobalDeadLetterTopicCollector.isCreated()) {
+        if (DLQRecordCollector.isCreated()) {
             final Failed failed = Failed.withDeserializationError(applicationId(), exception)
                     .withRecordType(Failed.RecordType.SOURCE)
                     .withRecordTopic(record.topic())
@@ -81,17 +69,19 @@ public class DeadLetterTopicDeserializationExceptionHandler
                     .withRecordOffset(record.offset())
                     .withRecordTimestamp(record.timestamp())
                     .withRecordHeaders(record.headers());
-            GlobalDeadLetterTopicCollector.get().send(
-                    extractedOutputTopic,
+
+            Serdes.ByteArraySerde serde = new Serdes.ByteArraySerde();
+            DLQRecordCollector.get().send(
+                    config().topicNameExtractor(),
                     record.key(),
                     record.value(),
-                    Serdes.ByteArray().serializer(),
-                    Serdes.ByteArray().serializer(),
+                    serde.serializer(),
+                    serde.serializer(),
                     failed
             );
         } else {
-            LOG.warn("Failed to send corrupted record to Dead Letter Topic. "
-                    + "GlobalDeadLetterTopicCollector is not initialized.");
+            LOG.warn("Failed to send corrupted record to Dead Letter Queue. "
+                    + "DLQRecordCollector is not initialized.");
         }
 
         final ExceptionHandlerResponse response = getHandlerResponseForExceptionOrElse(
@@ -99,26 +89,10 @@ public class DeadLetterTopicDeserializationExceptionHandler
                 ExceptionHandlerResponse.CONTINUE
         );
 
-        switch (response) {
-            case CONTINUE:
-                return DeserializationHandlerResponse.CONTINUE;
-            case FAIL:
-                return DeserializationHandlerResponse.FAIL;
-            default:
-                throw new IllegalArgumentException("Unsupported DeserializationHandlerResponse: " + response);
-        }
-    }
-
-    private String extractOutputTopicName(final ConsumerRecord<byte[], byte[]> record,
-                                          final Exception exception) {
-        final DeadLetterTopicNameExtractor extractor = config().topicNameExtractor();
-        final FailedRecordContext recordContext = FailedRecordContextBuilder.with(exception, DESERIALIZATION)
-                .withTopic(record.topic())
-                .withPartition(record.partition())
-                .withTimestamp(record.timestamp())
-                .withOffset(record.offset())
-                .withHeaders(record.headers())
-                .build();
-        return extractor.extract(record.key(), record.value(), recordContext);
+        return switch (response) {
+            case CONTINUE -> DeserializationHandlerResponse.CONTINUE;
+            case FAIL -> DeserializationHandlerResponse.FAIL;
+            default -> throw new IllegalArgumentException("Unsupported DeserializationHandlerResponse: " + response);
+        };
     }
 }

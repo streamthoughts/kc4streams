@@ -18,16 +18,6 @@
  */
 package io.streamthoughts.kc4streams.error;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
@@ -46,19 +36,30 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
- * The {@code GlobalDeadLetterTopicCollector} can be used for sending corrupted record to Dead Letter Topics.
+ * The DLQRecordCollector is responsible for sending records to DLQs.
  */
-public class GlobalDeadLetterTopicCollector implements AutoCloseable {
+public class DLQRecordCollector implements AutoCloseable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GlobalDeadLetterTopicCollector.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DLQRecordCollector.class);
 
-    public static final String DEFAULT_CLIENT_ID = "kafka-streams-global-dlq-producer";
+    public static final String DEFAULT_CLIENT_ID = "kafka-streams-dlq-collector-producer";
 
-    private static volatile GlobalDeadLetterTopicCollector INSTANCE;
+    private static volatile DLQRecordCollector INSTANCE;
 
     private static final AtomicBoolean CONFIGURED = new AtomicBoolean(false);
 
@@ -66,20 +67,20 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
 
     private final Set<String> topicCache = ConcurrentHashMap.newKeySet();
 
-    private final GlobalDeadLetterTopicCollectorConfig config;
+    private final DLQRecordCollectorConfig config;
 
     private final Producer<byte[], byte[]> producer;
 
     private final AdminClient adminClient;
 
     /**
-     * Creates a new {@link GlobalDeadLetterTopicCollector} instance.
+     * Creates a new {@link DLQRecordCollector} instance.
      *
-     * @param config               the {@link GlobalDeadLetterTopicCollectorConfig}.
+     * @param config               the {@link DLQRecordCollectorConfig}.
      * @param registerShutdownHook flag to indicate if a register shutdown hook should be registered.
      */
-    private GlobalDeadLetterTopicCollector(final GlobalDeadLetterTopicCollectorConfig config,
-                                           final boolean registerShutdownHook) {
+    private DLQRecordCollector(final DLQRecordCollectorConfig config,
+                               final boolean registerShutdownHook) {
         this.config = config;
         this.producer = config.getProducer().get();
         this.adminClient = config.getAdminClient().orElse(null);
@@ -89,7 +90,7 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
     private void mayRegisterShutdownHook(final boolean registerShutdownHook) {
         if (registerShutdownHook) {
             Runtime.getRuntime().addShutdownHook(new Thread(this::close));
-            LOG.info("Registered a JVM shutdown hook for closing GlobalDeadLetterTopicCollector.");
+            LOG.info("Registered a JVM shutdown hook for closing DLQRecordCollector.");
         }
     }
 
@@ -102,23 +103,23 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
     }
 
     /**
-     * Gets the {@link GlobalDeadLetterTopicCollector} and create it if no one is already initialized.
+     * Gets the {@link DLQRecordCollector} and create it if no one is already initialized.
      *
-     * @param config the {@link GlobalDeadLetterTopicCollectorConfig}.
-     * @return the {@link GlobalDeadLetterTopicCollector} instance.
+     * @param config the {@link DLQRecordCollectorConfig}.
+     * @return the {@link DLQRecordCollector} instance.
      */
-    public static synchronized GlobalDeadLetterTopicCollector getOrCreate(final Map<String, ?> config) {
-       return getOrCreate(new GlobalDeadLetterTopicCollectorConfig(config));
+    public static synchronized DLQRecordCollector getOrCreate(final Map<String, ?> config) {
+        return getOrCreate(new DLQRecordCollectorConfig(config));
     }
 
     /**
-     * Gets the {@link GlobalDeadLetterTopicCollector} and create it if no one is already initialized.
+     * Gets the {@link DLQRecordCollector} and create it if no one is already initialized.
      *
-     * @param config the {@link GlobalDeadLetterTopicCollectorConfig}.
-     * @return the {@link GlobalDeadLetterTopicCollector} instance.
+     * @param config the {@link DLQRecordCollectorConfig}.
+     * @return the {@link DLQRecordCollector} instance.
      */
-    public static synchronized GlobalDeadLetterTopicCollector getOrCreate(
-            final GlobalDeadLetterTopicCollectorConfig config
+    public static synchronized DLQRecordCollector getOrCreate(
+            final DLQRecordCollectorConfig config
     ) {
         if (CONFIGURED.compareAndSet(false, true)) {
             if (config.getProducer().isEmpty()) {
@@ -135,27 +136,27 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
                 config.withAdminClient(createAdminClient(config.getAdminClientConfig()));
             }
 
-            INSTANCE = new GlobalDeadLetterTopicCollector(config, true);
+            INSTANCE = new DLQRecordCollector(config, true);
         }
         return INSTANCE;
     }
 
     /**
-     * @return {@code true} if the {@link GlobalDeadLetterTopicCollector} is created.
+     * @return {@code true} if the {@link DLQRecordCollector} is created.
      */
     public static synchronized boolean isCreated() {
         return CONFIGURED.get();
     }
 
     /**
-     * Gets the {@link GlobalDeadLetterTopicCollector}.
+     * Gets the {@link DLQRecordCollector}.
      *
-     * @return the {@link GlobalDeadLetterTopicCollector}.
-     * @throws IllegalStateException if no {@link GlobalDeadLetterTopicCollector} has been created.
+     * @return the {@link DLQRecordCollector}.
+     * @throws IllegalStateException if no {@link DLQRecordCollector} has been created.
      */
-    public static synchronized GlobalDeadLetterTopicCollector get() {
+    public static synchronized DLQRecordCollector get() {
         if (!CONFIGURED.get()) {
-            throw new IllegalStateException("GlobalDeadLetterTopicCollector is not created.");
+            throw new IllegalStateException("DLQRecordCollector is not created.");
         }
         return INSTANCE;
     }
@@ -163,8 +164,8 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
     /**
      * Sends a {@code null} key-value record to a dead-letter topics using the given context information.
      *
-     * @param topic     the name of the Dead Letter Topic.
-     * @param failed    the {@link Failed} record context.
+     * @param topic  the name of the Dead Letter Queue.
+     * @param failed the {@link Failed} record context.
      */
     public void send(final String topic,
                      final Failed failed) {
@@ -172,16 +173,89 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
     }
 
     /**
-     * Sends a key-value record to a dead-letter topics using the given context information.
+     * Sends a {@code null} key-value record to a dead-letter topics using the given context information.
      *
-     * @param topic             the name of the Dead Letter Topic.
-     * @param key               the record-key.
-     * @param value             the record-value.
-     * @param keySerializer     the {@link Serializer} for the key.
-     * @param valueSerializer   the {@link Serializer} for the value.
-     * @param failed            the {@link Failed} record context.
-     * @param <K>               the type of the key.
-     * @param <V>               the type of the value.
+     * @param topicNameExtractor the extractor to determine the name of the Kafka topic to write
+     * @param failed             the {@link Failed} record context.
+     */
+    public <K, V> void send(final DLQTopicNameExtractor<K, V> topicNameExtractor,
+                            final Failed failed) {
+        var topic = topicNameExtractor.extract(null, null, failed.toFailedRecordContext());
+        send(topic, null, null, null, null, failed);
+    }
+
+    /**
+     * Sends a {@code null} key-value record to a dead-letter topics using the given context information.
+     *
+     * @param topicNameExtractor the extractor to determine the name of the Kafka topic to write
+     * @param kv              the record key-value pair.
+     * @param keySerializer   the {@link Serializer} for the key.
+     * @param valueSerializer the {@link Serializer} for the value.
+     * @param failed          the {@link Failed} record context.
+     * @param <K>             the type of the key.
+     * @param <V>             the type of the value.
+     */
+    public <K, V> void send(final DLQTopicNameExtractor<K, V> topicNameExtractor,
+                            final KeyValue<K, V> kv,
+                            final Serializer<K> keySerializer,
+                            final Serializer<V> valueSerializer,
+                            final Failed failed) {
+        send(topicNameExtractor, kv.key, kv.value, keySerializer, valueSerializer, failed);
+    }
+
+    /**
+     * Sends a key-value record to a DLQ using the given context information.
+     *
+     * @param topic           the name of the Dead Letter Topic.
+     * @param kv              the record key-value pair.
+     * @param keySerializer   the {@link Serializer} for the key.
+     * @param valueSerializer the {@link Serializer} for the value.
+     * @param failed          the {@link Failed} record context.
+     * @param <K>             the type of the key.
+     * @param <V>             the type of the value.
+     */
+    public <K, V> void send(final String topic,
+                            final KeyValue<K, V> kv,
+                            final Serializer<K> keySerializer,
+                            final Serializer<V> valueSerializer,
+                            final Failed failed) {
+        send(topic, kv.key, kv.value, keySerializer, valueSerializer, failed);
+    }
+
+    /**
+     * Sends a {@code null} key-value record to a dead-letter topics using the given context information.
+     *
+     * @param topicNameExtractor the extractor to determine the name of the Kafka topic to write
+     * @param key             the record-key.
+     * @param value           the record-value.
+     * @param keySerializer   the {@link Serializer} for the key.
+     * @param valueSerializer the {@link Serializer} for the value.
+     * @param failed          the {@link Failed} record context.
+     * @param <K>             the type of the key.
+     * @param <V>             the type of the value.
+     */
+    public <K, V> void send(final DLQTopicNameExtractor<K, V> topicNameExtractor,
+                            final K key,
+                            final V value,
+                            final Serializer<K> keySerializer,
+                            final Serializer<V> valueSerializer,
+                            final Failed failed) {
+        FailedRecordContext context = failed.toFailedRecordContext();
+        var topic = topicNameExtractor.extract(key, value, context);
+        send(topic, key, value, keySerializer, valueSerializer, failed);
+    }
+
+    /**
+     * Sends a key-value record to a DLQ using the given context information.
+     *
+     * @param topic           the name of the Dead Letter Topic.
+     * @param key             the record-key.
+     * @param value           the record-value.
+     * @param keySerializer   the {@link Serializer} for the key.
+     * @param valueSerializer the {@link Serializer} for the value.
+     * @param failed          the {@link Failed} record context.
+     * @param <K>             the type of the key.
+     * @param <V>             the type of the value.
      */
     public <K, V> void send(final String topic,
                             final K key,
@@ -268,7 +342,7 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
     }
 
     public static void stop() {
-        Optional.ofNullable(INSTANCE).ifPresent(GlobalDeadLetterTopicCollector::close);
+        Optional.ofNullable(INSTANCE).ifPresent(DLQRecordCollector::close);
     }
 
     /* For Testing Purpose */
@@ -292,7 +366,6 @@ public class GlobalDeadLetterTopicCollector implements AutoCloseable {
                 if (adminClient != null) adminClient.close(Duration.ofSeconds(5));
                 topicCache.clear();
                 LOG.info("{} closed.", getClass().getName());
-                ;
             } catch (InterruptException e) {
                 Thread.currentThread().interrupt();
             }
