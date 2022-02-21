@@ -1,4 +1,4 @@
-= KC4 Streams (Kafka Commons for Streams)
+= KC4Streams (Kafka Commons for Streams)
 :toc:
 :toc-placement!:
 
@@ -287,7 +287,7 @@ The custom implementation must then be configured using :
 streamsConfig.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
 ----
 
-**KC4 Streams** provides a built-in `io.streamthoughts.kc4streams.rocksdb.StreamsRocksDBConfigSetter` that allows
+**KC4Streams** provides a built-in `io.streamthoughts.kc4streams.rocksdb.StreamsRocksDBConfigSetter` that allows
 overriding not only some default RocksDB options but also to enable log statistics, for performance debugging, and shared memory usage.
 
 Configuration::
@@ -330,7 +330,18 @@ KafkaStreams allows you to register a `StateRestoreListener` for listening to va
 
 You can set the `LoggingStateRestoreListener` implementation for logging the restoration process.
 
-== Contribute to KC4 Streams
+== Contribute to KC4Streams
+
+We're an active open source software community. We welcome and value contributions from everyone.
+Any feedback, bug reports and PRs are greatly appreciated!
+
+=== Talk to us
+To talk with our community about development related topics:
+
+* Open an issue on https://github.com/streamthoughts/kc4streams/issues[GitHub] for questions, improvement suggestions or anything related to the use of **KC4Streams**.
+
+=== Issue Tracker
+We use GitHub to track all code related issues: https://github.com/streamthoughts/kc4streams/issues.
 
 == Licence
 Copyright 2022 StreamThoughts.
