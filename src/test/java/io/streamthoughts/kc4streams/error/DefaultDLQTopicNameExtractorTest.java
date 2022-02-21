@@ -32,7 +32,7 @@ public class DefaultDLQTopicNameExtractorTest {
         extractor.configure(Map.of());
 
         FailedRecordContext context = FailedRecordContextBuilder
-                .with(new RuntimeException(), ExceptionType.PROCESSING)
+                .with(new RuntimeException(), ExceptionStage.PROCESSING)
                 .withTopic("input-topic")
                 .withApplicationId("my-application-id")
                 .build();
@@ -48,7 +48,7 @@ public class DefaultDLQTopicNameExtractorTest {
         ));
 
         FailedRecordContext context = FailedRecordContextBuilder
-                .with(new RuntimeException(), ExceptionType.PROCESSING)
+                .with(new RuntimeException(), ExceptionStage.PROCESSING)
                 .withTopic("input-topic")
                 .withApplicationId("my-application-id")
                 .build();
@@ -64,7 +64,7 @@ public class DefaultDLQTopicNameExtractorTest {
         ));
 
         FailedRecordContext context = FailedRecordContextBuilder
-                .with(new RuntimeException(), ExceptionType.PROCESSING)
+                .with(new RuntimeException(), ExceptionStage.PROCESSING)
                 .withTopic("input-topic")
                 .withApplicationId("my-application-id")
                 .build();

@@ -31,16 +31,15 @@ import java.nio.charset.StandardCharsets;
  */
 public final class ExceptionHeaders {
 
-    public static final String ERROR_EXCEPTION_STACKTRACE = "__errors.exception.stacktrace";
-    public static final String ERROR_EXCEPTION_MESSAGE = "__errors.exception.message";
-    public static final String ERROR_EXCEPTION_CLASS_NAME = "__errors.exception.class.name";
-    public static final String ERROR_TIMESTAMP = "__errors.timestamp";
-    public static final String ERROR_APPLICATION_ID = "__errors.application.id";
-    public static final String ERROR_RECORD_TOPIC = "__errors.record.topic";
-    public static final String ERROR_RECORD_PARTITION = "__errors.record.partition";
-    public static final String ERROR_RECORD_OFFSET = "__errors.record.offset";
-    public static final String ERROR_RECORD_TOPIC_TYPE = "__errors.record.type";
-    public static final String ERROR_TYPE = "__errors.type";
+    public static final String STREAMS_ERRORS_EXCEPTION_STACKTRACE = "__streams.errors.exception.stacktrace";
+    public static final String STREAMS_ERRORS_EXCEPTION_MESSAGE = "__streams.errors.exception.message";
+    public static final String STREAMS_ERRORS_EXCEPTION_CLASS_NAME = "__streams.errors.exception.class.name";
+    public static final String STREAMS_ERRORS_TIMESTAMP = "__streams.errors.timestamp";
+    public static final String STREAMS_ERRORS_APPLICATION_ID = "__streams.errors.application.id";
+    public static final String STREAMS_ERRORS_TOPIC = "__streams.errors.topic";
+    public static final String STREAMS_ERRORS_PARTITION = "__streams.errors.partition";
+    public static final String STREAMS_ERRORS_OFFSET = "__streams.errors.offset";
+    public static final String STREAMS_ERRORS_STAGE = "__streams.errors.stage";
 
     /**
      * Enrich the given header with the {@link Failed} object.
@@ -53,21 +52,21 @@ public final class ExceptionHeaders {
         final Throwable exception = failed.exception();
 
         Headers enriched = new RecordHeaders(headers);
-        enriched.add(ERROR_EXCEPTION_STACKTRACE, toByteArray(getStacktrace(exception)));
-        enriched.add(ERROR_EXCEPTION_MESSAGE, toByteArray(exception.getMessage()));
-        enriched.add(ERROR_EXCEPTION_CLASS_NAME, toByteArray(exception.getClass().getName()));
-        enriched.add(ERROR_TIMESTAMP, toByteArray(Time.SYSTEM.milliseconds()));
-        enriched.add(ERROR_APPLICATION_ID, toByteArray(failed.applicationId()));
-        enriched.add(ERROR_TYPE, toByteArray(failed.exceptionTypes().name()));
+        enriched.add(STREAMS_ERRORS_EXCEPTION_STACKTRACE, toByteArray(getStacktrace(exception)));
+        enriched.add(STREAMS_ERRORS_EXCEPTION_MESSAGE, toByteArray(exception.getMessage()));
+        enriched.add(STREAMS_ERRORS_EXCEPTION_CLASS_NAME, toByteArray(exception.getClass().getName()));
+        enriched.add(STREAMS_ERRORS_TIMESTAMP, toByteArray(Time.SYSTEM.milliseconds()));
+        enriched.add(STREAMS_ERRORS_APPLICATION_ID, toByteArray(failed.applicationId()));
+        enriched.add(STREAMS_ERRORS_STAGE, toByteArray(failed.exceptionTypes().name()));
 
         failed.recordTopic()
-                .ifPresent(it -> enriched.add(ERROR_RECORD_TOPIC, toByteArray(it)));
+                .ifPresent(it -> enriched.add(STREAMS_ERRORS_TOPIC, toByteArray(it)));
         failed.recordPartition()
-                .ifPresent(it -> enriched.add(ERROR_RECORD_PARTITION, toByteArray(it)));
+                .ifPresent(it -> enriched.add(STREAMS_ERRORS_PARTITION, toByteArray(it)));
         failed.recordOffset()
-                .ifPresent(it -> enriched.add(ERROR_RECORD_OFFSET, toByteArray(it)));
+                .ifPresent(it -> enriched.add(STREAMS_ERRORS_OFFSET, toByteArray(it)));
         failed.recordType()
-                .ifPresent(it -> enriched.add(ERROR_RECORD_TOPIC_TYPE, toByteArray(it.name())));
+                .ifPresent(it -> enriched.add(STREAMS_ERRORS_STAGE, toByteArray(it.name())));
         return enriched;
     }
 

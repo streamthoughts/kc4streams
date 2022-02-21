@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static io.streamthoughts.kc4streams.error.ExceptionType.DESERIALIZATION;
+import static io.streamthoughts.kc4streams.error.ExceptionStage.DESERIALIZATION;
 
 /**
  * This {@link DeserializationExceptionHandler} can be used to send a corrupted record to a dedicated Dead Letter Queue (DLQ)

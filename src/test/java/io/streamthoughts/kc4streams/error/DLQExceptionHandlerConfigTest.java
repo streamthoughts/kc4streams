@@ -38,7 +38,7 @@ public class DLQExceptionHandlerConfigTest {
   @Test
   public void should_return_defaults_given_empty_configs() {
     var config =
-        new DLQExceptionHandlerConfig(Map.of(), ExceptionType.DESERIALIZATION);
+        new DLQExceptionHandlerConfig(Map.of(), ExceptionStage.DESERIALIZATION);
     assertTrue(config.customHeaders().isEmpty());
     assertTrue(config.getIgnoredExceptions().isEmpty());
     assertTrue(config.getFatalExceptions().isEmpty());
@@ -58,7 +58,7 @@ public class DLQExceptionHandlerConfigTest {
                 AuthorizationException.class.getName(),
                 DLQExceptionHandlerConfig.DLQ_DEFAULT_RESPONSE_CONFIG,
                 ExceptionHandlerResponse.CONTINUE.name()),
-            ExceptionType.DESERIALIZATION);
+            ExceptionStage.DESERIALIZATION);
 
     assertEquals(ExceptionHandlerResponse.CONTINUE, config.defaultHandlerResponseOrElse(null));
 
@@ -81,7 +81,7 @@ public class DLQExceptionHandlerConfigTest {
                 DLQExceptionHandlerConfig.prefixForDeserializationHandler(DLQExceptionHandlerConfig.DLQ_RESPONSE_CONFIG),
                 ExceptionHandlerResponse.FAIL.name()
             ),
-            ExceptionType.DESERIALIZATION
+            ExceptionStage.DESERIALIZATION
         );
     assertEquals(ExceptionHandlerResponse.FAIL, config.defaultHandlerResponseOrElse(null));
   }
@@ -96,7 +96,7 @@ public class DLQExceptionHandlerConfigTest {
                             DLQExceptionHandlerConfig.prefixForProductionHandler(DLQExceptionHandlerConfig.DLQ_RESPONSE_CONFIG),
                             ExceptionHandlerResponse.FAIL.name()
                     ),
-                    ExceptionType.PRODUCTION
+                    ExceptionStage.PRODUCTION
             );
     assertEquals(ExceptionHandlerResponse.FAIL, config.defaultHandlerResponseOrElse(null));
   }
@@ -113,7 +113,7 @@ public class DLQExceptionHandlerConfigTest {
                     RecordTooLargeException.class.getName(),
                     DLQExceptionHandlerConfig.DLQ_DEFAULT_FAIL_ERRORS_CONFIG,
                     RecordTooLargeException.class.getName()),
-                    ExceptionType.DESERIALIZATION
+                    ExceptionStage.DESERIALIZATION
             ));
 
     Assertions.assertTrue(exception.getMessage().contains(RecordTooLargeException.class.getName()));

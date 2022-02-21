@@ -18,7 +18,7 @@
  */
 package io.streamthoughts.kc4streams.error.internal;
 
-import io.streamthoughts.kc4streams.error.ExceptionType;
+import io.streamthoughts.kc4streams.error.ExceptionStage;
 import io.streamthoughts.kc4streams.error.FailedRecordContext;
 import io.streamthoughts.kc4streams.error.DLQTopicNameExtractor;
 import org.apache.kafka.common.header.Headers;
@@ -32,7 +32,7 @@ import org.apache.kafka.streams.processor.RecordContext;
 public final class FailedRecordContextBuilder {
 
     private Throwable exception;
-    private ExceptionType exceptionType;
+    private ExceptionStage exceptionType;
     private Long offset;
     private Long timestamp;
     private Integer partition;
@@ -48,7 +48,7 @@ public final class FailedRecordContextBuilder {
      * @return              a new {@link FailedRecordContextBuilder}.
      */
     public static FailedRecordContextBuilder with(final Throwable exception,
-                                                  final ExceptionType exceptionType) {
+                                                  final ExceptionStage exceptionType) {
         return new FailedRecordContextBuilder(exception, exceptionType);
 
     }
@@ -61,7 +61,7 @@ public final class FailedRecordContextBuilder {
      * @return              a new {@link FailedRecordContextBuilder}.
      */
     public static FailedRecordContextBuilder with(final Throwable exception,
-                                                  final ExceptionType exceptionType,
+                                                  final ExceptionStage exceptionType,
                                                   final RecordContext context) {
 
         return with(exception, exceptionType)
@@ -78,7 +78,7 @@ public final class FailedRecordContextBuilder {
      * @param exceptionType     the type of the exception.
      */
     private FailedRecordContextBuilder(final Throwable exception,
-                                       final ExceptionType exceptionType) {
+                                       final ExceptionStage exceptionType) {
         this.exception = exception;
         this.exceptionType = exceptionType;
     }
@@ -88,7 +88,7 @@ public final class FailedRecordContextBuilder {
         return this;
     }
 
-    public FailedRecordContextBuilder withExceptionType(final ExceptionType exceptionType) {
+    public FailedRecordContextBuilder withExceptionType(final ExceptionStage exceptionType) {
         this.exceptionType = exceptionType;
         return this;
     }

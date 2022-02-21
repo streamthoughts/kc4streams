@@ -74,10 +74,10 @@ public class DLQExceptionHandlerTestUtils {
 
     Map<String, String> headers = assertCommonsHeadersAndGet(record, e);
 
-    assertEquals(source.topic(), headers.get(ExceptionHeaders.ERROR_RECORD_TOPIC));
-    assertEquals(String.valueOf(source.partition()), headers.get(ExceptionHeaders.ERROR_RECORD_PARTITION));
+    assertEquals(source.topic(), headers.get(ExceptionHeaders.STREAMS_ERRORS_TOPIC));
+    assertEquals(String.valueOf(source.partition()), headers.get(ExceptionHeaders.STREAMS_ERRORS_PARTITION));
 
-    Assertions.assertEquals(ExceptionType.PRODUCTION.name(), headers.get(ExceptionHeaders.ERROR_TYPE));
+    Assertions.assertEquals(ExceptionStage.PRODUCTION.name(), headers.get(ExceptionHeaders.STREAMS_ERRORS_STAGE));
   }
 
   public static void assertProducedRecord(
@@ -87,11 +87,11 @@ public class DLQExceptionHandlerTestUtils {
 
     Map<String, String> headers = assertCommonsHeadersAndGet(record, e);
 
-    assertEquals(source.topic(), headers.get(ExceptionHeaders.ERROR_RECORD_TOPIC));
-    assertEquals(String.valueOf(source.partition()), headers.get(ExceptionHeaders.ERROR_RECORD_PARTITION));
-    assertEquals(String.valueOf(source.offset()), headers.get(ExceptionHeaders.ERROR_RECORD_OFFSET));
+    assertEquals(source.topic(), headers.get(ExceptionHeaders.STREAMS_ERRORS_TOPIC));
+    assertEquals(String.valueOf(source.partition()), headers.get(ExceptionHeaders.STREAMS_ERRORS_PARTITION));
+    assertEquals(String.valueOf(source.offset()), headers.get(ExceptionHeaders.STREAMS_ERRORS_OFFSET));
 
-    Assertions.assertEquals(ExceptionType.DESERIALIZATION.name(), headers.get(ExceptionHeaders.ERROR_TYPE));
+    Assertions.assertEquals(ExceptionStage.DESERIALIZATION.name(), headers.get(ExceptionHeaders.STREAMS_ERRORS_STAGE));
   }
 
   private static Map<String, String> assertCommonsHeadersAndGet(
@@ -103,11 +103,11 @@ public class DLQExceptionHandlerTestUtils {
         Stream.of(record.headers().toArray())
             .collect(Collectors.toMap(Header::key, h -> new String(h.value())));
 
-    assertEquals(TEST_APP, headers.get(ExceptionHeaders.ERROR_APPLICATION_ID));
-    assertEquals(e.getMessage(), headers.get(ExceptionHeaders.ERROR_EXCEPTION_MESSAGE));
-    assertEquals(e.getClass().getName(), headers.get(ExceptionHeaders.ERROR_EXCEPTION_CLASS_NAME));
-    assertEquals(ExceptionHeaders.getStacktrace(e), headers.get(ExceptionHeaders.ERROR_EXCEPTION_STACKTRACE));
-    assertNotNull(headers.get(ExceptionHeaders.ERROR_TIMESTAMP));
+    assertEquals(TEST_APP, headers.get(ExceptionHeaders.STREAMS_ERRORS_APPLICATION_ID));
+    assertEquals(e.getMessage(), headers.get(ExceptionHeaders.STREAMS_ERRORS_EXCEPTION_MESSAGE));
+    assertEquals(e.getClass().getName(), headers.get(ExceptionHeaders.STREAMS_ERRORS_EXCEPTION_CLASS_NAME));
+    assertEquals(ExceptionHeaders.getStacktrace(e), headers.get(ExceptionHeaders.STREAMS_ERRORS_EXCEPTION_STACKTRACE));
+    assertNotNull(headers.get(ExceptionHeaders.STREAMS_ERRORS_TIMESTAMP));
     assertEquals("test-header-value", headers.get("test-header-key"));
     return headers;
   }

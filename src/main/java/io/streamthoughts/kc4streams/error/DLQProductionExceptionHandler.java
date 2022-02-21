@@ -39,7 +39,7 @@ public class DLQProductionExceptionHandler
      * Creates a new {@link DLQProductionExceptionHandler} instance.
      */
     public DLQProductionExceptionHandler() {
-        super(ExceptionType.PRODUCTION);
+        super(ExceptionStage.PRODUCTION);
     }
 
     /**

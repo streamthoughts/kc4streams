@@ -34,14 +34,14 @@ class AbstractDLQExceptionHandler implements Configurable {
 
     private String applicationId;
 
-    private final ExceptionType exceptionTypes;
+    private final ExceptionStage exceptionTypes;
 
     /**
      * Creates a new {@link AbstractDLQExceptionHandler} instance.
      *
      * @param exceptionTypes the exception type.
      */
-    AbstractDLQExceptionHandler(final ExceptionType exceptionTypes) {
+    AbstractDLQExceptionHandler(final ExceptionStage exceptionTypes) {
         this.exceptionTypes = Objects.requireNonNull(exceptionTypes, "'exceptionType' should not be null");
     }
 

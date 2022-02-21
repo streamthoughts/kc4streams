@@ -37,14 +37,14 @@ public class DLQStreamUncaughtExceptionHandler
      * Creates a new {@link DLQStreamUncaughtExceptionHandler} instance.
      */
     public DLQStreamUncaughtExceptionHandler() {
-        super(ExceptionType.STREAM);
+        super(ExceptionStage.STREAMS);
     }
 
     /**
      * Creates a new {@link DLQStreamUncaughtExceptionHandler} instance.
      */
     public DLQStreamUncaughtExceptionHandler(final Map<String, ?> configProps) {
-        super(ExceptionType.STREAM);
+        super(ExceptionStage.STREAMS);
         configure(configProps);
     }
 
@@ -52,7 +52,7 @@ public class DLQStreamUncaughtExceptionHandler
      * Creates a new {@link DLQStreamUncaughtExceptionHandler} instance.
      */
     public DLQStreamUncaughtExceptionHandler(final StreamsConfig streamsConfig) {
-        super(ExceptionType.STREAM);
+        super(ExceptionStage.STREAMS);
         configure(streamsConfig.originals());
     }
 
@@ -63,12 +63,11 @@ public class DLQStreamUncaughtExceptionHandler
     public StreamThreadExceptionResponse handle(final Throwable exception) {
 
         if (DLQRecordCollector.isCreated()) {
-            final Failed failed = Failed.withStreamError(applicationId(), exception);
+            final Failed failed = Failed.withUncaughtStreamError(applicationId(), exception);
             DLQTopicNameExtractor<?, ?> topicNameExtractor = config().topicNameExtractor();
             DLQRecordCollector.get().send(topicNameExtractor, failed);
         } else {
-            LOG.warn("Failed to send corrupted record to Dead Letter Topic. "
-                    + "DLQRecordCollector is not initialized.");
+            LOG.warn("Failed to send corrupted record to DLQ. DLQRecordCollector is not initialized.");
         }
 
         final ExceptionHandlerResponse response = getHandlerResponseForExceptionOrElse(

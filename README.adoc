@@ -214,6 +214,24 @@ stream.mapValues((key, value) -> {
 });
 ----
 
+==== Recording the failure reason using message headers
+
+Each message sent to a DLQ is enriched with headers containing information about the reason for the message's rejection.
+
+Here's the list of headers:
+,===
+Header,Description
+`__streams.errors.topic`, The topic of the record in error.
+`__streams.errors.partition`, The partition of the record in error.
+`__streams.errors.offset`,  The offset of the record in error (empty for production error).
+`__streams.errors.timestamp`, The epoch-timestamp of the error.
+`__streams.errors.stage`, The stage of the error [`DESERIALIZATION` | `PRODUCTION` | `PROCESSING` | `STREAMS`]
+`__streams.errors.exception.message`, The exception message
+`__streams.errors.exception.class.name`, The exception class name
+`__streams.errors.exception.stacktrace`, The exception stacktrace
+`__streams.errors.application.id`, The stream application id.
+,===
+
 ==== SafeDeserializer & SafeSerde
 
 Another solution for dealing with deserialization exception is to return a _sentinel-value_  (e.g. `null`, `"N/A"`, `-1`)

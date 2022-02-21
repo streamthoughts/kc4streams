@@ -21,7 +21,7 @@ package io.streamthoughts.kc4streams.error;
 /**
  * The types of exceptions that may be thrown by a stream application.
  */
-public enum ExceptionType {
+public enum ExceptionStage {
 
     /**
      * An exception thrown during record deserialization.
@@ -47,5 +47,5 @@ public enum ExceptionType {
      *
      * @see org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler
      */
-    STREAM,
+    STREAMS,
 }

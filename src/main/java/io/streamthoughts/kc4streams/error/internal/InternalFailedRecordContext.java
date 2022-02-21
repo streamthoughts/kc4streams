@@ -18,7 +18,7 @@
  */
 package io.streamthoughts.kc4streams.error.internal;
 
-import io.streamthoughts.kc4streams.error.ExceptionType;
+import io.streamthoughts.kc4streams.error.ExceptionStage;
 import io.streamthoughts.kc4streams.error.FailedRecordContext;
 import org.apache.kafka.common.header.Headers;
 
@@ -27,7 +27,7 @@ import java.util.Optional;
 final class InternalFailedRecordContext implements FailedRecordContext {
 
     private final Throwable exception;
-    private final ExceptionType exceptionType;
+    private final ExceptionStage exceptionType;
     private final Long offset;
     private final Long timestamp;
     private final Integer partition;
@@ -39,7 +39,7 @@ final class InternalFailedRecordContext implements FailedRecordContext {
      * Creates a new {@link InternalFailedRecordContext} instance.
      */
     InternalFailedRecordContext(final Throwable exception,
-                                final ExceptionType exceptionType,
+                                final ExceptionStage exceptionType,
                                 final Long offset,
                                 final Long timestamp,
                                 final Integer partition,
@@ -68,7 +68,7 @@ final class InternalFailedRecordContext implements FailedRecordContext {
      * {@inheritDoc}
      */
     @Override
-    public ExceptionType exceptionType() {
+    public ExceptionStage exceptionType() {
         return exceptionType;
     }
 

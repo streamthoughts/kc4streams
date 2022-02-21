@@ -40,7 +40,7 @@ public class Failed {
      * @return a new {@link Failed} instance.
      */
     public static Failed withDeserializationError(final String applicationId, final Throwable exception) {
-        return new Failed(applicationId, exception, ExceptionType.DESERIALIZATION);
+        return new Failed(applicationId, exception, ExceptionStage.DESERIALIZATION);
     }
 
     /**
@@ -51,7 +51,7 @@ public class Failed {
      * @return a new {@link Failed} instance.
      */
     public static Failed withProductionError(final String applicationId, final Throwable exception) {
-        return new Failed(applicationId, exception, ExceptionType.PRODUCTION);
+        return new Failed(applicationId, exception, ExceptionStage.PRODUCTION);
     }
 
     /**
@@ -61,8 +61,8 @@ public class Failed {
      * @param exception     the exception that was handled.
      * @return a new {@link Failed} instance.
      */
-    public static Failed withStreamError(final String applicationId, final Throwable exception) {
-        return new Failed(applicationId, exception, ExceptionType.STREAM);
+    public static Failed withUncaughtStreamError(final String applicationId, final Throwable exception) {
+        return new Failed(applicationId, exception, ExceptionStage.STREAMS);
     }
 
     /**
@@ -73,12 +73,12 @@ public class Failed {
      * @return a new {@link Failed} instance.
      */
     public static Failed withProcessingError(final String applicationId, final Throwable exception) {
-        return new Failed(applicationId, exception, ExceptionType.PROCESSING);
+        return new Failed(applicationId, exception, ExceptionStage.PROCESSING);
     }
 
     private final Throwable exception;
     private final String applicationId;
-    private final ExceptionType exceptionTypes;
+    private final ExceptionStage exceptionTypes;
     private String topic;
     private Integer partition;
     private Long offset;
@@ -96,7 +96,7 @@ public class Failed {
      */
     private Failed(final String applicationId,
                    final Throwable exception,
-                   final ExceptionType exceptionTypes) {
+                   final ExceptionStage exceptionTypes) {
         this.applicationId = Objects.requireNonNull(applicationId, "'applicationId' should not be null");
         this.exception = Objects.requireNonNull(exception, "'exception' should not be null");
         this.exceptionTypes = Objects.requireNonNull(exceptionTypes, "'exceptionTypes' should not be null");
@@ -179,9 +179,9 @@ public class Failed {
     }
 
     /**
-     * @return the {@link ExceptionType}.
+     * @return the {@link ExceptionStage}.
      */
-    ExceptionType exceptionTypes() {
+    ExceptionStage exceptionTypes() {
         return exceptionTypes;
     }
 

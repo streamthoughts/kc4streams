@@ -83,7 +83,7 @@ public class DLQExceptionHandlerConfig extends AbstractConfig {
 
     private final EnrichedExceptionHandlerConfig overriddenConfig;
 
-    private final ExceptionType exceptionType;
+    private final ExceptionStage exceptionType;
     private final Set<Class<?>> continueOnExceptions = new HashSet<>();
     private final Set<Class<?>> failOnExceptions = new HashSet<>();
 
@@ -93,7 +93,7 @@ public class DLQExceptionHandlerConfig extends AbstractConfig {
      * @param originals the original configs.
      */
     public DLQExceptionHandlerConfig(final Map<String, ?> originals,
-                                     final ExceptionType exceptionType) {
+                                     final ExceptionStage exceptionType) {
         super(configDef(DLQ_DEFAULT_PREFIX_CONFIG, DLQ_GROUP), originals);
 
         final String configPrefix = getConfigPrefix(exceptionType);
@@ -137,13 +137,13 @@ public class DLQExceptionHandlerConfig extends AbstractConfig {
         }
     }
 
-    private static String getConfigPrefix(final ExceptionType exceptionType) {
+    private static String getConfigPrefix(final ExceptionStage exceptionType) {
         String prefix = null;
-        if (exceptionType == ExceptionType.PRODUCTION)
+        if (exceptionType == ExceptionStage.PRODUCTION)
             prefix = DLQ_PRODUCTION_PREFIX_CONFIG;
-        if (exceptionType == ExceptionType.DESERIALIZATION)
+        if (exceptionType == ExceptionStage.DESERIALIZATION)
             prefix = DLQ_DESERIALIZATION_PREFIX_CONFIG;
-        if (exceptionType == ExceptionType.STREAM)
+        if (exceptionType == ExceptionStage.STREAMS)
             prefix = DLQ_STREAMS_PREFIX_CONFIG;
         return prefix;
     }
@@ -251,15 +251,15 @@ public class DLQExceptionHandlerConfig extends AbstractConfig {
     }
 
     public static String prefixForProductionHandler(final String configKey) {
-        return getConfigPrefix(ExceptionType.PRODUCTION) + configKey;
+        return getConfigPrefix(ExceptionStage.PRODUCTION) + configKey;
     }
 
     public static String prefixForDeserializationHandler(final String configKey) {
-        return getConfigPrefix(ExceptionType.DESERIALIZATION) + configKey;
+        return getConfigPrefix(ExceptionStage.DESERIALIZATION) + configKey;
     }
 
     public static String prefixForStreamUncaughtHandler(final String configKey) {
-        return getConfigPrefix(ExceptionType.STREAM) + configKey;
+        return getConfigPrefix(ExceptionStage.STREAMS) + configKey;
     }
 
     private static class EnrichedExceptionHandlerConfig extends AbstractConfig {

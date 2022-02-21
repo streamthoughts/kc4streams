@@ -38,8 +38,8 @@
         <junit.version>5.8.2</junit.version>
     </properties>
 
-    <name>Kafka Commmons for Streams</name>
-    <description>Commons and reusable classes for Kafka Streams.</description>
+    <name>Kafka Commons for Streams</name>
+    <description>A collection of common utilities and reusable classes for Kafka Streams applications.</description>
 
     <developers>
         <developer>

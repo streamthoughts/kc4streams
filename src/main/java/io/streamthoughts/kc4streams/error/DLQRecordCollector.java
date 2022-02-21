@@ -33,7 +33,6 @@ import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.errors.TopicExistsException;
-import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KeyValue;
@@ -264,8 +263,6 @@ public class DLQRecordCollector implements AutoCloseable {
                             final Serializer<V> valueSerializer,
                             final Failed failed) {
 
-        final Headers enrichedHeaders = ExceptionHeaders.addExceptionHeaders(failed.headers(), failed);
-
         final byte[] keyBytes = Optional.ofNullable(key)
                 .map(o -> keySerializer.serialize(topic, key))
                 .orElse(null);
@@ -281,7 +278,7 @@ public class DLQRecordCollector implements AutoCloseable {
                         failed.recordTimestamp().orElse(null),
                         keyBytes,
                         valueBytes,
-                        enrichedHeaders
+                        ExceptionHeaders.addExceptionHeaders(failed.headers(), failed)
                 );
         send(record);
     }
@@ -293,12 +290,12 @@ public class DLQRecordCollector implements AutoCloseable {
                 (metadata, exception) -> {
                     if (exception != null) {
                         LOG.error(
-                                "Failed to send corrupted record into topic {}. Ignored record.",
+                                "Failed to send record into DLQ: topic={}. Ignored record.",
                                 record.topic(),
                                 exception);
                     } else {
                         LOG.debug(
-                                "Sent corrupted record successfully to topic={}, partition={}, offset={} ",
+                                "Sent record successfully into DLQ: topic={}, partition={}, offset={}",
                                 metadata.topic(),
                                 metadata.partition(),
                                 metadata.hasOffset() ? metadata.offset() : -1);
