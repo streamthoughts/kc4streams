@@ -267,7 +267,7 @@ public class DLQRecordCollector implements AutoCloseable {
                 .map(o -> keySerializer.serialize(topic, key))
                 .orElse(null);
 
-        final byte[] valueBytes = Optional.ofNullable(key)
+        final byte[] valueBytes = Optional.ofNullable(value)
                 .map(o -> valueSerializer.serialize(topic, value))
                 .orElse(null);
 
